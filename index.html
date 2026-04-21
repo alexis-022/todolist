@@ -1,1 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Tasks</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: white;
+            display: flex;
+            justify-content: center;
+            padding-top: 50px;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        h2 { text-align: center; color: #00d4ff; }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 6px;
+            border: none;
+            outline: none;
+        }
+        button {
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: none;
+            background: #00d4ff;
+            color: black;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:hover { background: #009cbd; }
+        ul { list-style: none; padding: 0; }
+        li {
+            background: #2a2a2a;
+            margin-bottom: 8px;
+            padding: 12px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+        .delete-btn {
+            background: #ff4d4d;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
 
+<div class="container">
+    <h2>Cloud To-Do</h2>
+    <div class="input-group">
+        <input type="text" id="taskInput" placeholder="What needs doing?">
+        <button id="addBtn">Add</button>
+    </div>
+    <ul id="taskList"></ul>
+</div>
+
+<script type="module">
+    // 1. Import Firebase tools
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, push, onChildAdded, remove, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    // 2. YOUR CONFIG (PASTE YOURS HERE)
+    const firebaseConfig = {
+        apiKey: "AIzaSyA1cOfZneI_ss-QmQCkZostIQngpQ_JbtE",
+        authDomain: "to-do-list-2fbf9.firebaseapp.com",
+        databaseURL: "https://to-do-list-2fbf9-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "to-do-list-2fbf9",
+        storageBucket: "to-do-list-2fbf9.firebasestorage.app",
+        messagingSenderId: "712067178045",
+        appId: "1:712067178045:web:e4091b51ce4b8fb1d69454"
+    };
+
+    // 3. Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const todoRef = ref(db, 'tasks');
+
+    const input = document.getElementById('taskInput');
+    const btn = document.getElementById('addBtn');
+    const list = document.getElementById('taskList');
+
+    // FUNCTION: Send to Database
+    btn.onclick = () => {
+        const text = input.value.trim();
+        if (text !== "") {
+            push(todoRef, {
+                task: text,
+                timestamp: Date.now()
+            });
+            input.value = "";
+        }
+    };
+
+    // Allow "Enter" key to add tasks
+    input.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") btn.click();
+    });
+
+    // LISTEN: When a new task is added to the DB (from any device)
+    onChildAdded(todoRef, (snapshot) => {
+        const data = snapshot.val();
+        const key = snapshot.key;
+
+        const li = document.createElement('li');
+        li.id = key; // Set ID so we can find it to remove it later
+        li.innerHTML = `
+            <span>${data.task}</span>
+            <button class="delete-btn" onclick="deleteTask('${key}')">Delete</button>
+        `;
+        list.appendChild(li);
+    });
+
+    // LISTEN: When a task is deleted from the DB
+    onChildRemoved(todoRef, (snapshot) => {
+        const li = document.getElementById(snapshot.key);
+        if (li) li.remove();
+    });
+
+    // FUNCTION: Delete from Database
+    window.deleteTask = (key) => {
+        const itemRef = ref(db, `tasks/${key}`);
+        remove(itemRef);
+    };
+
+</script>
+
+</body>
+</html>
