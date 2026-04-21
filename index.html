@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Nexus Intelligence Library</title>
+    <title>Nexus Intelligence Pro</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root { --p: #6366f1; --bg: #0b0f1a; --card: rgba(30, 41, 59, 0.7); --t: #f8fafc; }
@@ -62,11 +62,11 @@
 
     <div id="modal">
         <div class="modal-content">
-            <div id="dupWarning" class="duplicate-alert">⚠️ Match Found: Adding another copy.</div>
+            <div id="dupWarning" class="duplicate-alert">⚠️ Match Found: Incrementing Copies</div>
             <div class="timer-track"><div id="timerBar"></div></div>
             <div class="field-grid" id="formContainer"></div>
             <button class="save-btn" id="confirmSave">SAVE ENTRY</button>
-            <button onclick="closeModal()" style="background:none; border:none; color:#94a3b8; width:100%; margin-bottom: 30px;">Discard Changes</button>
+            <button onclick="closeModal()" style="background:none; border:none; color:#94a3b8; width:100%; margin-bottom: 40px;">Discard Changes</button>
         </div>
     </div>
 
@@ -95,6 +95,7 @@
         "currentUser", "lastUser", "reservesPlaced", "ratings", "reviews"
     ];
 
+    // Build fields
     const container = document.getElementById('formContainer');
     categories.forEach(cat => {
         const div = document.createElement('div');
@@ -112,50 +113,65 @@
     };
 
     document.getElementById('stopScan').onclick = () => { 
-        scanner.stop(); 
-        document.getElementById('scanner-view').style.display = 'none'; 
+        scanner.stop(); document.getElementById('scanner-view').style.display = 'none'; 
     };
 
     async function onScan(isbn) {
         scanner.stop();
         document.getElementById('scanner-view').style.display = 'none';
         
+        let fetchedData = { isbn: isbn };
         const existingBook = allBooks.find(b => b.isbn === isbn);
-        let fetchedData = {};
 
+        // 1. TRY GOOGLE BOOKS
         try {
             const gRes = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
             const gData = await gRes.json();
-            
-            if (gData.items?.[0]) {
-                const vol = gData.items[0].volumeInfo;
+            if (gData.items?.[0]?.volumeInfo) {
+                const v = gData.items[0].volumeInfo;
                 fetchedData = {
-                    title: vol.title || "",
-                    author: vol.authors?.join(', ') || "",
-                    publisher: vol.publisher || "",
-                    publishDate: vol.publishedDate || "",
-                    pageCount: vol.pageCount || "",
-                    summary: vol.description || "",
-                    genre: vol.categories?.[0] || "",
-                    language: vol.language || "",
-                    cover: vol.imageLinks?.thumbnail?.replace('http:', 'https:') || ""
+                    ...fetchedData,
+                    title: v.title || "",
+                    author: v.authors?.join(', ') || "",
+                    publisher: v.publisher || "",
+                    publishDate: v.publishedDate || "",
+                    pageCount: v.pageCount || "",
+                    summary: v.description || "",
+                    genre: v.categories?.[0] || "",
+                    language: v.language || "",
+                    cover: v.imageLinks?.thumbnail?.replace('http:', 'https:') || ""
                 };
             }
-        } catch(e) { console.error("API error"); }
+        } catch(e) { console.warn("Google API failed"); }
 
-        // Process fields: Use API data first, then Session Defaults, then Empty String
+        // 2. TRY OPEN LIBRARY IF STILL EMPTY
+        if (!fetchedData.title) {
+            try {
+                const oRes = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
+                const oData = await oRes.json();
+                const b = oData[`ISBN:${isbn}`];
+                if (b) {
+                    fetchedData.title = fetchedData.title || b.title || "";
+                    fetchedData.author = fetchedData.author || b.authors?.[0]?.name || "";
+                    fetchedData.cover = fetchedData.cover || b.cover?.large || "";
+                    fetchedData.publisher = fetchedData.publisher || b.publishers?.[0]?.name || "";
+                }
+            } catch(e) { console.warn("OpenLib failed"); }
+        }
+
+        // 3. MAP TO FORM
         categories.forEach(c => {
-            let val = fetchedData[c] || ""; // Start with API or empty
+            let val = fetchedData[c] || "";
             
-            // Override with session defaults if they exist
-            if (c === 'locationInLibrary' && document.getElementById('def-location').value) val = document.getElementById('def-location').value;
-            if (c === 'genre' && !val && document.getElementById('def-genre').value) val = document.getElementById('def-genre').value;
+            // Apply session defaults
+            const defLoc = document.getElementById('def-location').value;
+            const defGen = document.getElementById('def-genre').value;
+            if (c === 'locationInLibrary' && defLoc) val = defLoc;
+            if (c === 'genre' && !val && defGen) val = defGen;
             
-            // Logic for copy count
-            if (c === 'numCopies') {
-                val = existingBook ? (parseInt(existingBook.numCopies) || 1) + 1 : 1;
-            }
-
+            // Set numCopies
+            if (c === 'numCopies') val = existingBook ? (parseInt(existingBook.numCopies) || 1) + 1 : 1;
+            
             currentBook[c] = val;
         });
         currentBook.cover = fetchedData.cover || "";
@@ -171,9 +187,11 @@
 
     function showModal(book, id = null) {
         editingId = id;
-        categories.forEach(c => document.getElementById(`f-${c}`).value = book[c]);
-        document.getElementById('modal').style.display = 'block';
+        categories.forEach(c => {
+            document.getElementById(`f-${c}`).value = book[c] || "";
+        });
         
+        document.getElementById('modal').style.display = 'block';
         const bar = document.getElementById('timerBar');
         bar.classList.remove('paused');
         bar.style.transform = 'scaleX(1)';
@@ -182,7 +200,7 @@
             setTimeout(() => { bar.style.transform = 'scaleX(0)'; }, 50);
             autoTimer = setTimeout(save, 5000);
         } else {
-            bar.classList.add('paused'); // Stay open for duplicates
+            bar.classList.add('paused');
         }
     }
 
@@ -200,14 +218,14 @@
         else push(libRef, data);
 
         closeModal();
-        setTimeout(() => document.getElementById('openScanner').click(), 500);
+        setTimeout(() => document.getElementById('openScanner').click(), 600);
     }
 
     window.closeModal = function() {
         clearTimeout(autoTimer);
         document.getElementById('modal').style.display = 'none';
         editingId = null;
-    }
+    };
 
     document.getElementById('confirmSave').onclick = save;
 
@@ -227,7 +245,7 @@
             div.innerHTML = `
                 <img src="${b.cover || 'https://via.placeholder.com/150x225?text=No+Cover'}" class="card-img">
                 <div class="card-meta">
-                    <strong>${b.title || 'Untitled'}</strong><br>${b.author || 'Unknown'}
+                    <strong>${b.title || 'No Title'}</strong><br>${b.author || ''}
                 </div>
             `;
             grid.appendChild(div);
@@ -236,7 +254,11 @@
 
     document.getElementById('search').oninput = (e) => {
         const v = e.target.value.toLowerCase();
-        render(allBooks.filter(b => (b.title || "").toLowerCase().includes(v) || (b.isbn || "").includes(v)));
+        render(allBooks.filter(b => 
+            (b.title || "").toLowerCase().includes(v) || 
+            (b.isbn || "").includes(v) || 
+            (b.author || "").toLowerCase().includes(v)
+        ));
     };
 </script>
 </body>
