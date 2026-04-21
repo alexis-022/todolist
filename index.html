@@ -3,40 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Sync Tasks</title>
+    <title>Cloud Master List</title>
     <style>
         :root { --bg: #121212; --card: #1e1e1e; --accent: #00d4ff; --text: #eeeeee; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; }
+        .light-mode { --bg: #f0f2f5; --card: #ffffff; --accent: #007bff; --text: #333333; }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; padding: 20px; transition: 0.3s; }
         .container { width: 100%; max-width: 450px; background: var(--card); padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        h2 { margin-top: 0; color: var(--accent); text-align: center; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .input-box { display: flex; gap: 10px; margin-bottom: 20px; }
-        input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #252525; color: white; outline: none; }
-        input:focus { border-color: var(--accent); }
-        #addBtn { padding: 10px 20px; background: var(--accent); border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        #addBtn:hover { transform: scale(1.05); opacity: 0.9; }
+        input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #252525; color: white; }
+        .light-mode input { background: #eee; color: black; border: 1px solid #ccc; }
+        
+        button { padding: 10px 15px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; }
+        #addBtn { background: var(--accent); color: white; }
+        .theme-btn { background: #444; color: white; font-size: 12px; }
+
         ul { list-style: none; padding: 0; }
-        li { background: #2a2a2a; padding: 15px; margin-bottom: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--accent); }
-        .task-content { display: flex; flex-direction: column; }
-        .timestamp { font-size: 0.7rem; color: #888; margin-top: 4px; }
-        .del-btn { background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        li { background: #2a2a2a; padding: 15px; margin-bottom: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; cursor: pointer; }
+        .light-mode li { background: #f9f9f9; border: 1px solid #ddd; }
+        
+        .completed { opacity: 0.4; text-decoration: line-through; border-left: 4px solid #888 !important; }
+        li:not(.completed) { border-left: 4px solid var(--accent); }
+
+        .task-info { display: flex; flex-direction: column; flex-grow: 1; }
+        .user-tag { font-size: 0.65rem; font-weight: bold; color: var(--accent); text-transform: uppercase; }
+        .timestamp { font-size: 0.65rem; color: #888; }
+        .del-btn { background: #ff4d4d; color: white; margin-left: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Cloud Sync Tasks</h2>
+    <div class="header">
+        <h2>Cloud Tasks</h2>
+        <button class="theme-btn" id="themeToggle">🌓 Toggle Theme</button>
+    </div>
+    
     <div class="input-box">
         <input type="text" id="taskInput" placeholder="What's the plan?">
         <button id="addBtn">Add</button>
     </div>
+    
     <ul id="taskList"></ul>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, push, onChildAdded, remove, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, push, onChildAdded, remove, onChildRemoved, update, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // YOUR CONFIG
     const firebaseConfig = {
         apiKey: "AIzaSyA1cOfZneI_ss-QmQCkZostIQngpQ_JbtE",
         authDomain: "to-do-list-2fbf9.firebaseapp.com",
@@ -47,68 +63,74 @@
         appId: "1:712067178045:web:e4091b51ce4b8fb1d69454"
     };
 
-    // Init
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const todoRef = ref(db, 'tasks');
+
+    // 1. NICKNAME LOGIC
+    let username = localStorage.getItem('chat-name') || prompt("Enter a nickname:") || "Anon";
+    localStorage.setItem('chat-name', username);
+
+    // 2. THEME LOGIC
+    document.getElementById('themeToggle').onclick = () => document.body.classList.toggle('light-mode');
 
     const input = document.getElementById('taskInput');
     const btn = document.getElementById('addBtn');
     const list = document.getElementById('taskList');
 
     // ADD TASK
-    btn.onclick = async () => {
-        const text = input.value.trim();
-        if (text !== "") {
-            try {
-                await push(todoRef, {
-                    text: text,
-                    timestamp: Date.now() // Standard JS timestamp
-                });
-                input.value = "";
-            } catch (e) {
-                console.error("Error adding task:", e);
-                alert("Failed to add task. Check your Firebase Rules!");
-            }
+    btn.onclick = () => {
+        if (input.value.trim()) {
+            push(todoRef, {
+                text: input.value,
+                user: username,
+                done: false,
+                time: Date.now()
+            });
+            input.value = "";
         }
     };
 
-    // RENDER TASK
-    onChildAdded(todoRef, (snapshot) => {
+    // RENDER LOGIC
+    const createTaskUI = (snapshot) => {
         const data = snapshot.val();
         const key = snapshot.key;
-        
-        // Convert timestamp to readable format
-        const dateObj = data.timestamp ? new Date(data.timestamp) : new Date();
-        const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const dateStr = dateObj.toLocaleDateString();
+        const time = new Date(data.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
         const li = document.createElement('li');
         li.id = key;
+        if (data.done) li.classList.add('completed');
+        
         li.innerHTML = `
-            <div class="task-content">
+            <div class="task-info" onclick="toggleDone('${key}', ${data.done})">
+                <span class="user-tag">${data.user}</span>
                 <span>${data.text}</span>
-                <span class="timestamp">${dateStr} at ${timeStr}</span>
+                <span class="timestamp">${time}</span>
             </div>
             <button class="del-btn" onclick="deleteTask('${key}')">Delete</button>
         `;
-        list.appendChild(li);
-    });
-
-    // SYNC DELETION
-    onChildRemoved(todoRef, (snapshot) => {
-        const item = document.getElementById(snapshot.key);
-        if (item) item.remove();
-    });
-
-    // GLOBAL DELETE FUNCTION
-    window.deleteTask = (id) => {
-        remove(ref(db, `tasks/${id}`));
+        return li;
     };
 
-    // Enter Key Support
+    onChildAdded(todoRef, (snap) => list.appendChild(createTaskUI(snap)));
+
+    // SYNC UPDATES (Done/Undone)
+    onChildChanged(todoRef, (snap) => {
+        const oldLi = document.getElementById(snap.key);
+        const newLi = createTaskUI(snap);
+        list.replaceChild(newLi, oldLi);
+    });
+
+    onChildRemoved(todoRef, (snap) => document.getElementById(snap.key)?.remove());
+
+    // DATABASE ACTIONS
+    window.deleteTask = (id) => remove(ref(db, `tasks/${id}`));
+    
+    window.toggleDone = (id, currentStatus) => {
+        update(ref(db, `tasks/${id}`), { done: !currentStatus });
+    };
+
     input.onkeypress = (e) => { if(e.key === "Enter") btn.click(); };
 </script>
-
 </body>
 </html>
