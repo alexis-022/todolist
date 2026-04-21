@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Nexus Intelligence Pro</title>
+    <title>Nexus Librarian Pro</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root { --p: #6366f1; --bg: #0b0f1a; --card: rgba(30, 41, 59, 0.7); --t: #f8fafc; }
@@ -11,20 +11,22 @@
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--t); margin: 0; padding: 15px; min-height: 100vh; }
 
         .session-defaults { background: #1e293b; padding: 12px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--p); }
-        .session-defaults h4 { margin: 0 0 8px 0; font-size: 11px; text-transform: uppercase; color: var(--p); }
-        .default-inputs { display: flex; gap: 10px; }
+        .default-inputs { display: flex; gap: 10px; margin-top: 8px; }
         .default-inputs input { flex: 1; padding: 8px; font-size: 12px; background: #0b0f1a; border: 1px solid #334155; color: white; border-radius: 6px; }
 
-        .search-input { width: 100%; background: var(--card); border: 1px solid rgba(255,255,255,0.1); padding: 14px; border-radius: 14px; color: white; margin-bottom: 20px; backdrop-filter: blur(10px); }
-        .book-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); padding-bottom: 100px; }
-        .book-card { background: var(--card); border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; }
+        /* Section Headings */
+        .section-header { margin: 30px 0 15px 0; padding-bottom: 8px; border-bottom: 2px solid var(--p); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--p); display: flex; justify-content: space-between; align-items: center; }
+        .section-count { font-size: 0.7rem; background: var(--p); color: white; padding: 2px 8px; border-radius: 10px; }
+
+        .book-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); margin-bottom: 40px; }
+        .book-card { background: var(--card); border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
         .card-img { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #1e293b; }
-        .card-meta { padding: 8px; font-size: 0.75rem; }
+        .card-meta { padding: 8px; font-size: 0.7rem; }
+        . Dewey-tag { font-family: monospace; color: #fbbf24; font-weight: bold; }
 
         #scanner-view { display: none; position: fixed; inset: 0; background: #000; z-index: 5000; flex-direction: column; }
         #reader { flex: 1; }
-        .close-scan { position: absolute; top: 30px; right: 20px; background: #ef4444; border: none; color: white; padding: 8px 16px; border-radius: 20px; z-index: 5001; font-weight: bold; }
-
+        
         #modal { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 4000; padding: 20px; overflow-y: auto; }
         .modal-content { max-width: 600px; margin: auto; }
         .timer-track { width: 100%; height: 4px; background: #334155; border-radius: 2px; margin-bottom: 20px; overflow: hidden; }
@@ -34,39 +36,47 @@
         .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .wide { grid-column: span 2; }
         label { font-size: 9px; font-weight: 800; color: var(--p); text-transform: uppercase; display: block; margin-bottom: 3px; }
-        input, textarea { width: 100%; background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 8px; color: white; font-size: 14px; }
+        input { width: 100%; background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 8px; color: white; font-size: 14px; }
         
         .fab { position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px; background: var(--p); border-radius: 50%; border: none; color: white; font-size: 24px; z-index: 100; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
         .save-btn { background: var(--p); color: white; border: none; padding: 16px; border-radius: 12px; width: 100%; font-weight: 800; margin: 15px 0; }
-        .duplicate-alert { background: #f59e0b; color: #000; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; display: none; text-align: center; }
     </style>
 </head>
 <body>
 
     <div class="session-defaults">
-        <h4>Session Defaults</h4>
+        <h4 style="margin:0; font-size:11px; text-transform:uppercase; color:var(--p)">Session Defaults</h4>
         <div class="default-inputs">
             <input type="text" id="def-location" placeholder="Shelf Location">
-            <input type="text" id="def-genre" placeholder="Genre">
+            <input type="text" id="def-genre" placeholder="Genre (e.g. Fiction)">
         </div>
     </div>
 
-    <input type="text" id="search" class="search-input" placeholder="Search title or ISBN...">
-    <div class="book-grid" id="bookGrid"></div>
+    <input type="text" id="search" style="width:100%; background:var(--card); border:1px solid rgba(255,255,255,0.1); padding:14px; border-radius:14px; color:white; margin-bottom:10px;" placeholder="Search by title, author, or Dewey...">
+
+    <div id="fiction-section" style="display:none;">
+        <div class="section-header">Fiction <span>A-Z by Author</span></div>
+        <div class="book-grid" id="fictionGrid"></div>
+    </div>
+
+    <div id="nonfiction-section" style="display:none;">
+        <div class="section-header">Non-Fiction <span>Dewey Decimal Order</span></div>
+        <div class="book-grid" id="nonfictionGrid"></div>
+    </div>
+
     <button class="fab" id="openScanner">📸</button>
 
     <div id="scanner-view">
-        <button class="close-scan" id="stopScan">CANCEL</button>
+        <button onclick="stopScan()" style="position:absolute; top:30px; right:20px; background:#ef4444; border:none; color:white; padding:10px 20px; border-radius:20px; z-index:5001;">CANCEL</button>
         <div id="reader"></div>
     </div>
 
     <div id="modal">
         <div class="modal-content">
-            <div id="dupWarning" class="duplicate-alert">⚠️ Match Found: Incrementing Copies</div>
             <div class="timer-track"><div id="timerBar"></div></div>
             <div class="field-grid" id="formContainer"></div>
-            <button class="save-btn" id="confirmSave">SAVE ENTRY</button>
-            <button onclick="closeModal()" style="background:none; border:none; color:#94a3b8; width:100%; margin-bottom: 40px;">Discard Changes</button>
+            <button class="save-btn" id="confirmSave">SAVE TO SHELF</button>
+            <button onclick="closeModal()" style="background:none; border:none; color:#94a3b8; width:100%; margin-bottom:40px;">Discard</button>
         </div>
     </div>
 
@@ -86,21 +96,18 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const libRef = ref(db, 'nexus_ultra_v1');
+    const libRef = ref(db, 'nexus_ultra_v2');
 
     const categories = [
-        "title", "author", "isbn", "publishDate", "publisher", "genre", "seriesInfo", 
-        "language", "pageCount", "locationInLibrary", "numCopies", "copyAvailability",
-        "type", "format", "tags", "excerpts", "summary", "notes", "damageNotes",
-        "currentUser", "lastUser", "reservesPlaced", "ratings", "reviews"
+        "title", "author", "isbn", "genre", "deweyDecimal", "seriesName", "seriesPosition",
+        "locationInLibrary", "numCopies", "publishDate", "publisher", "pageCount", "summary"
     ];
 
-    // Build fields
     const container = document.getElementById('formContainer');
     categories.forEach(cat => {
         const div = document.createElement('div');
-        div.className = ["title", "summary", "excerpts", "reviews", "notes"].includes(cat) ? "wide" : "";
-        div.innerHTML = `<label>${cat}</label><input id="f-${cat}" class="lib-input">`;
+        div.className = (cat === 'title' || cat === 'summary') ? "wide" : "";
+        div.innerHTML = `<label>${cat}</label><input id="f-${cat}">`;
         container.appendChild(div);
     });
 
@@ -112,96 +119,63 @@
         scanner.start({ facingMode: "environment" }, { fps: 20 }, onScan);
     };
 
-    document.getElementById('stopScan').onclick = () => { 
-        scanner.stop(); document.getElementById('scanner-view').style.display = 'none'; 
-    };
+    window.stopScan = () => { scanner.stop(); document.getElementById('scanner-view').style.display = 'none'; };
 
     async function onScan(isbn) {
-        scanner.stop();
-        document.getElementById('scanner-view').style.display = 'none';
-        
-        let fetchedData = { isbn: isbn };
-        const existingBook = allBooks.find(b => b.isbn === isbn);
+        stopScan();
+        let fetchedData = { isbn: isbn, numCopies: 1 };
+        const existing = allBooks.find(b => b.isbn === isbn);
 
-        // 1. TRY GOOGLE BOOKS
         try {
+            // Priority 1: Google Books (better for Dewey & Series)
             const gRes = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
             const gData = await gRes.json();
             if (gData.items?.[0]?.volumeInfo) {
                 const v = gData.items[0].volumeInfo;
-                fetchedData = {
-                    ...fetchedData,
-                    title: v.title || "",
-                    author: v.authors?.join(', ') || "",
-                    publisher: v.publisher || "",
-                    publishDate: v.publishedDate || "",
-                    pageCount: v.pageCount || "",
-                    summary: v.description || "",
-                    genre: v.categories?.[0] || "",
-                    language: v.language || "",
-                    cover: v.imageLinks?.thumbnail?.replace('http:', 'https:') || ""
-                };
+                fetchedData.title = v.title || "";
+                fetchedData.author = v.authors?.join(', ') || "";
+                fetchedData.genre = v.categories?.[0] || "";
+                fetchedData.summary = v.description || "";
+                fetchedData.cover = v.imageLinks?.thumbnail?.replace('http:', 'https:') || "";
+                
+                // Fetching Dewey from specialized identifier if available
+                const ddc = v.industryIdentifiers?.find(i => i.type === "OTHER")?.identifier || "";
+                fetchedData.deweyDecimal = ddc.includes('.') ? ddc : "";
             }
-        } catch(e) { console.warn("Google API failed"); }
 
-        // 2. TRY OPEN LIBRARY IF STILL EMPTY
-        if (!fetchedData.title) {
-            try {
-                const oRes = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
-                const oData = await oRes.json();
-                const b = oData[`ISBN:${isbn}`];
-                if (b) {
-                    fetchedData.title = fetchedData.title || b.title || "";
-                    fetchedData.author = fetchedData.author || b.authors?.[0]?.name || "";
-                    fetchedData.cover = fetchedData.cover || b.cover?.large || "";
-                    fetchedData.publisher = fetchedData.publisher || b.publishers?.[0]?.name || "";
-                }
-            } catch(e) { console.warn("OpenLib failed"); }
-        }
+            // Priority 2: OpenLibrary (better for Series Position)
+            const oRes = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
+            const oData = await oRes.json();
+            const b = oData[`ISBN:${isbn}`];
+            if (b) {
+                fetchedData.title = fetchedData.title || b.title || "";
+                fetchedData.author = fetchedData.author || b.authors?.[0]?.name || "";
+                fetchedData.cover = fetchedData.cover || b.cover?.large || "";
+            }
+        } catch(e) { console.warn("API error"); }
 
-        // 3. MAP TO FORM
         categories.forEach(c => {
             let val = fetchedData[c] || "";
-            
-            // Apply session defaults
-            const defLoc = document.getElementById('def-location').value;
-            const defGen = document.getElementById('def-genre').value;
-            if (c === 'locationInLibrary' && defLoc) val = defLoc;
-            if (c === 'genre' && !val && defGen) val = defGen;
-            
-            // Set numCopies
-            if (c === 'numCopies') val = existingBook ? (parseInt(existingBook.numCopies) || 1) + 1 : 1;
-            
+            if (c === 'locationInLibrary') val = document.getElementById('def-location').value || val;
+            if (c === 'genre' && !val) val = document.getElementById('def-genre').value || "";
+            if (c === 'numCopies' && existing) val = (parseInt(existing.numCopies) || 1) + 1;
             currentBook[c] = val;
         });
         currentBook.cover = fetchedData.cover || "";
-
-        if (existingBook) {
-            document.getElementById('dupWarning').style.display = 'block';
-            showModal(currentBook, existingBook.id);
-        } else {
-            document.getElementById('dupWarning').style.display = 'none';
-            showModal(currentBook);
-        }
+        showModal(currentBook, existing ? existing.id : null);
     }
 
     function showModal(book, id = null) {
         editingId = id;
-        categories.forEach(c => {
-            document.getElementById(`f-${c}`).value = book[c] || "";
-        });
-        
+        categories.forEach(c => document.getElementById(`f-${c}`).value = book[c] || "");
         document.getElementById('modal').style.display = 'block';
         const bar = document.getElementById('timerBar');
         bar.classList.remove('paused');
         bar.style.transform = 'scaleX(1)';
-
         if (!id) {
             setTimeout(() => { bar.style.transform = 'scaleX(0)'; }, 50);
             autoTimer = setTimeout(save, 5000);
-        } else {
-            bar.classList.add('paused');
-        }
+        } else { bar.classList.add('paused'); }
     }
 
     document.getElementById('formContainer').addEventListener('focusin', () => {
@@ -213,20 +187,13 @@
         clearTimeout(autoTimer);
         const data = { cover: currentBook.cover || "" };
         categories.forEach(c => data[c] = document.getElementById(`f-${c}`).value);
-        
-        if (editingId) update(ref(db, `nexus_ultra_v1/${editingId}`), data);
+        if (editingId) update(ref(db, `nexus_ultra_v2/${editingId}`), data);
         else push(libRef, data);
-
         closeModal();
         setTimeout(() => document.getElementById('openScanner').click(), 600);
     }
 
-    window.closeModal = function() {
-        clearTimeout(autoTimer);
-        document.getElementById('modal').style.display = 'none';
-        editingId = null;
-    };
-
+    window.closeModal = function() { clearTimeout(autoTimer); document.getElementById('modal').style.display = 'none'; editingId = null; };
     document.getElementById('confirmSave').onclick = save;
 
     onValue(libRef, (snap) => {
@@ -236,30 +203,53 @@
     });
 
     function render(list = allBooks) {
-        const grid = document.getElementById('bookGrid');
-        grid.innerHTML = '';
-        list.forEach(b => {
+        const fGrid = document.getElementById('fictionGrid');
+        const nfGrid = document.getElementById('nonfictionGrid');
+        fGrid.innerHTML = ''; nfGrid.innerHTML = '';
+
+        // SEPARATION LOGIC
+        const fiction = list.filter(b => (b.genre || "").toLowerCase().includes("fiction") && !(b.genre || "").toLowerCase().includes("non"));
+        const nonfiction = list.filter(b => (b.genre || "").toLowerCase().includes("non-fiction") || (b.genre || "").toLowerCase().includes("nonfiction") || b.deweyDecimal);
+
+        // FICTION SORT: Last Name -> Series -> Position -> Title
+        fiction.sort((a,b) => {
+            const getLast = (n) => n.split(' ').pop().toLowerCase();
+            const author = getLast(a.author).localeCompare(getLast(b.author));
+            if (author !== 0) return author;
+            const series = (a.seriesName || "").localeCompare(b.seriesName || "");
+            if (series !== 0) return series;
+            const pos = (parseInt(a.seriesPosition) || 0) - (parseInt(b.seriesPosition) || 0);
+            if (pos !== 0) return pos;
+            return a.title.localeCompare(b.title);
+        });
+
+        // NON-FICTION SORT: Dewey -> Title
+        nonfiction.sort((a,b) => {
+            const dewey = (parseFloat(a.deweyDecimal) || 999) - (parseFloat(b.deweyDecimal) || 999);
+            if (dewey !== 0) return dewey;
+            return a.title.localeCompare(b.title);
+        });
+
+        document.getElementById('fiction-section').style.display = fiction.length ? 'block' : 'none';
+        document.getElementById('nonfiction-section').style.display = nonfiction.length ? 'block' : 'none';
+
+        const draw = (b, container) => {
             const div = document.createElement('div');
             div.className = 'book-card';
             div.onclick = () => showModal(b, b.id);
             div.innerHTML = `
                 <img src="${b.cover || 'https://via.placeholder.com/150x225?text=No+Cover'}" class="card-img">
                 <div class="card-meta">
-                    <strong>${b.title || 'No Title'}</strong><br>${b.author || ''}
-                </div>
-            `;
-            grid.appendChild(div);
-        });
-    }
+                    <span class="Dewey-tag">${b.deweyDecimal ? '№ ' + b.deweyDecimal : ''}</span><br>
+                    <strong>${b.title}</strong><br>
+                    ${b.seriesName ? '<small>#' + b.seriesPosition + ' ' + b.seriesName + '</small>' : b.author}
+                </div>`;
+            container.appendChild(div);
+        };
 
-    document.getElementById('search').oninput = (e) => {
-        const v = e.target.value.toLowerCase();
-        render(allBooks.filter(b => 
-            (b.title || "").toLowerCase().includes(v) || 
-            (b.isbn || "").includes(v) || 
-            (b.author || "").toLowerCase().includes(v)
-        ));
-    };
+        fiction.forEach(b => draw(b, fGrid));
+        nonfiction.forEach(b => draw(b, nfGrid));
+    }
 </script>
 </body>
 </html>
