@@ -2,70 +2,66 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus Library Management</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nexus Library Pro</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: env(safe-area-inset-top) 15px; }
+        :root { --p: #6366f1; --bg: #0f172a; --c: #1e293b; --t: #f8fafc; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--t); margin: 0; padding: 15px; padding-bottom: 80px; }
         
-        /* Stats Header */
-        .dashboard { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 20px 0; }
-        .stat-card { background: var(--card); padding: 15px; border-radius: 16px; text-align: center; border: 1px solid #334155; }
-        .stat-card span { display: block; font-size: 1.5rem; font-weight: 800; color: var(--primary); }
-        .stat-card label { font-size: 0.7rem; opacity: 0.6; text-transform: uppercase; }
+        /* Stats & Header */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .search { width: 100%; background: var(--c); border: 1px solid #334155; padding: 14px; border-radius: 12px; color: white; margin-bottom: 15px; font-size: 16px; }
 
-        /* Search & Actions */
-        .controls { position: sticky; top: 0; background: var(--bg); padding: 10px 0; z-index: 10; display: flex; gap: 10px; }
-        .search-box { flex: 1; background: var(--card); border: 1px solid #334155; padding: 12px 15px; border-radius: 12px; color: white; outline: none; }
-        .scan-btn { background: var(--primary); border: none; padding: 12px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; }
+        /* Full Screen Entry Modal */
+        #modal { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 1000; padding: 20px; overflow-y: auto; }
+        .modal-inner { max-width: 500px; margin: auto; }
+        
+        /* Progress Bar */
+        .timer-wrap { width: 100%; height: 6px; background: #334155; border-radius: 10px; margin-bottom: 20px; overflow: hidden; }
+        #timerBar { width: 100%; height: 100%; background: var(--p); transform-origin: left; transition: transform 5s linear; }
+        .timer-paused { transform: scaleX(1) !important; background: #f59e0b !important; transition: none !important; }
 
-        /* Library List */
-        .book-list { display: flex; flex-direction: column; gap: 12px; padding-bottom: 100px; }
-        .book-item { background: var(--card); border-radius: 16px; padding: 12px; display: flex; gap: 15px; border: 1px solid #334155; animation: slideIn 0.3s ease-out; }
-        .book-cover { width: 60px; height: 90px; border-radius: 8px; object-fit: cover; background: #334155; }
-        .book-info h4 { margin: 0; font-size: 1rem; color: #fff; }
-        .shelf-tag { display: inline-block; font-size: 0.65rem; background: #334155; padding: 2px 8px; border-radius: 5px; margin-top: 5px; }
+        /* Responsive Form */
+        .f-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .f-group { display: flex; flex-direction: column; gap: 5px; }
+        .f-full { grid-column: span 2; }
+        label { font-size: 11px; color: #94a3b8; font-weight: bold; text-transform: uppercase; }
+        input, textarea { background: var(--c); border: 1px solid #334155; padding: 12px; border-radius: 8px; color: white; font-size: 14px; width: 100%; }
+        
+        /* Action Buttons */
+        .btn { background: var(--p); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: bold; width: 100%; margin-top: 15px; font-size: 16px; cursor: pointer; }
+        .btn-sec { background: transparent; color: #ef4444; margin-top: 5px; }
 
-        /* Modal */
-        #modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 100; padding: 20px; overflow-y: auto; }
-        .modal-content { background: var(--card); padding: 25px; border-radius: 24px; max-width: 500px; margin: auto; border: 1px solid #444; }
-        #timerBar { height: 4px; background: var(--primary); width: 100%; transition: width 5s linear; margin-bottom: 15px; }
-        .paused { width: 100% !important; transition: none !important; background: #f59e0b !important; }
-
-        .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .input-group { display: flex; flex-direction: column; gap: 5px; }
-        .input-group label { font-size: 0.7rem; color: #94a3b8; font-weight: 600; }
-        input, textarea, select { background: #0f172a; border: 1px solid #334155; padding: 10px; border-radius: 8px; color: white; font-family: inherit; }
-
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Book Display */
+        .book-card { background: var(--c); padding: 12px; border-radius: 16px; display: flex; gap: 15px; margin-bottom: 12px; border: 1px solid #334155; }
+        .book-cover { width: 50px; height: 75px; border-radius: 6px; object-fit: cover; }
+        
+        #reader { width: 100%; border-radius: 16px; overflow: hidden; margin-bottom: 15px; display: none; border: 2px solid var(--p); }
     </style>
 </head>
 <body>
 
-    <div class="dashboard">
-        <div class="stat-card"><span id="stat-total">0</span><label>Total</label></div>
-        <div class="stat-card"><span id="stat-avail">0</span><label>Available</label></div>
-        <div class="stat-card"><span id="stat-reserves">0</span><label>Reserves</label></div>
+    <div class="header">
+        <h2 style="margin:0">Library</h2>
+        <button id="scanBtn" style="background:var(--p); border:none; color:white; padding:10px 20px; border-radius:10px; font-weight:bold;">+ SCAN</button>
     </div>
 
-    <div class="controls">
-        <input type="text" id="search" class="search-box" placeholder="Search by Title, Author, or ISBN...">
-        <button class="scan-btn" id="startScan">📷</button>
-    </div>
-
-    <div id="reader" style="display:none; width:100%; border-radius:16px; margin: 10px 0;"></div>
-
-    <div class="book-list" id="library"></div>
+    <input type="text" id="search" class="search" placeholder="Search title, author...">
+    <div id="reader"></div>
+    <div id="bookList"></div>
 
     <div id="modal">
-        <div class="modal-content">
-            <div id="timerBar"></div>
-            <h3 style="margin-top:0">Verify Asset Info</h3>
-            <div class="input-grid" id="formFields"></div>
-            <button class="scan-btn" id="saveBtn" style="width:100%; justify-content:center; margin-top:20px; font-weight:bold;">CONFIRM & SAVE</button>
-            <button id="closeBtn" style="background:none; color:#ef4444; border:none; width:100%; margin-top:10px; cursor:pointer;">Discard Entry</button>
+        <div class="modal-inner">
+            <div class="timer-wrap"><div id="timerBar"></div></div>
+            <h3 id="modalHead" style="margin:0 0 15px 0">New Asset Found</h3>
+            
+            <div class="f-grid" id="fieldContainer">
+                </div>
+
+            <button class="btn" id="saveBtn">CONFIRM & SAVE</button>
+            <button class="btn btn-sec" id="cancelBtn">DISCARD</button>
         </div>
     </div>
 
@@ -85,165 +81,137 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const libRef = ref(db, 'production_library');
+    const libRef = ref(db, 'final_library');
 
     let allBooks = [];
-    let timerId;
+    let autoSaveTimeout;
     let editingId = null;
+    let currentBook = {};
 
     const fields = [
-        "title", "author", "isbn", "publishDate", "publisher", "pageCount", 
-        "language", "genre", "seriesInfo", "format", "locationInLibrary", 
-        "numCopies", "damageNotes", "ratings", "currentUser", "lastUser", "summary", "reviews", "reservesPlaced"
+        "title", "author", "isbn", "genre", "locationInLibrary", "numCopies", "damageNotes", "publisher", "publishDate", "summary"
     ];
 
-    // Generate Form
-    const form = document.getElementById('formFields');
+    // Build the UI fields
+    const container = document.getElementById('fieldContainer');
     fields.forEach(f => {
         const div = document.createElement('div');
-        div.className = 'input-group';
-        div.innerHTML = `<label>${f.replace(/([A-Z])/g, ' $1').toUpperCase()}</label><input id="f-${f}" class="lib-input">`;
-        form.appendChild(div);
+        div.className = f === 'title' || f === 'summary' ? 'f-group f-full' : 'f-group';
+        div.innerHTML = `<label>${f.replace(/([A-Z])/g, ' $1')}</label><input id="in-${f}" class="m-input">`;
+        container.appendChild(div);
     });
 
-    // Timer Pause on Input
-    document.querySelectorAll('.lib-input').forEach(el => {
-        el.onfocus = () => { clearTimeout(timerId); document.getElementById('timerBar').classList.add('paused'); };
-    });
-
-    // Scanner logic
+    // --- SCANNER LOGIC ---
     const scanner = new Html5Qrcode("reader");
-    document.getElementById('startScan').onclick = () => {
-        const r = document.getElementById('reader');
-        r.style.display = 'block';
-        scanner.start({ facingMode: "environment" }, { fps: 15 }, (isbn) => {
-            scanner.stop(); r.style.display = 'none';
+    document.getElementById('scanBtn').onclick = () => startScanner();
+
+    function startScanner() {
+        document.getElementById('reader').style.display = 'block';
+        scanner.start({ facingMode: "environment" }, { fps: 10 }, (isbn) => {
+            scanner.stop();
+            document.getElementById('reader').style.display = 'none';
             fetchBook(isbn);
         });
-    };
+    }
 
     async function fetchBook(isbn) {
-        const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
-        const data = await res.json();
-        const b = data[`ISBN:${isbn}`] || {};
-        
-        const book = {
-            title: b.title || "Nil",
-            author: b.authors ? b.authors[0].name : "Nil",
-            isbn: isbn,
-            publishDate: b.publish_date || "Nil",
-            publisher: b.publishers ? b.publishers[0].name : "Nil",
-            pageCount: b.number_of_pages || 0,
-            language: b.languages ? b.languages[0].name : "English",
-            genre: b.subjects ? b.subjects[0].name : "Fiction",
-            seriesInfo: b.series ? b.series[0].name : "Nil",
-            format: "Hardcover",
-            locationInLibrary: "General",
-            numCopies: 1,
-            damageNotes: "None",
-            ratings: "Nil",
-            currentUser: "None",
-            lastUser: "Nil",
-            summary: b.notes || "No summary",
-            reviews: "Nil",
-            reservesPlaced: 0,
-            coverImage: b.cover ? b.cover.large : ""
-        };
-
-        openModal(book);
-        document.getElementById('timerBar').classList.remove('paused');
-        timerId = setTimeout(saveBook, 5000);
+        try {
+            const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
+            const data = await res.json();
+            const b = data[`ISBN:${isbn}`] || {};
+            
+            currentBook = {
+                title: b.title || "Nil",
+                author: b.authors ? b.authors[0].name : "Nil",
+                isbn: isbn,
+                genre: b.subjects ? b.subjects[0].name : "Nil",
+                locationInLibrary: "General",
+                numCopies: 1,
+                damageNotes: "Nil",
+                publisher: b.publishers ? b.publishers[0].name : "Nil",
+                publishDate: b.publish_date || "Nil",
+                summary: b.notes || "Nil",
+                cover: b.cover ? b.cover.large : ""
+            };
+            openModal(currentBook);
+        } catch(e) { alert("Error fetching data"); }
     }
 
     function openModal(book, id = null) {
         editingId = id;
-        fields.forEach(f => document.getElementById(`f-${f}`).value = book[f]);
-        window.currentCover = book.coverImage;
+        fields.forEach(f => document.getElementById(`in-${f}`).value = book[f]);
         document.getElementById('modal').style.display = 'block';
+        document.getElementById('timerBar').style.transform = 'scaleX(1)';
+        
+        // Reset Timer State
+        document.getElementById('timerBar').classList.remove('timer-paused');
+        
+        if (!id) { // Only auto-save on NEW scans
+            setTimeout(() => { document.getElementById('timerBar').style.transform = 'scaleX(0)'; }, 50);
+            autoSaveTimeout = setTimeout(submitData, 5000);
+        } else {
+            document.getElementById('timerBar').classList.add('timer-paused');
+        }
     }
 
-    function saveBook() {
-        const data = { coverImage: window.currentCover };
-        fields.forEach(f => data[f] = document.getElementById(`f-${f}`).value);
+    // INTERACTION CHECK: If user touches an input, stop the timer
+    document.getElementById('fieldContainer').addEventListener('input', () => {
+        clearTimeout(autoSaveTimeout);
+        document.getElementById('timerBar').classList.add('timer-paused');
+    });
+
+    function submitData() {
+        clearTimeout(autoSaveTimeout);
+        const data = { cover: currentBook.cover || "" };
+        fields.forEach(f => data[f] = document.getElementById(`in-${f}`).value || "Nil");
         
-        if (editingId) update(ref(db, `production_library/${editingId}`), data);
+        if (editingId) update(ref(db, `final_library/${editingId}`), data);
         else push(libRef, data);
         
         closeModal();
+        // AUTO-CONTINUE: Start scanner for next book
+        setTimeout(startScanner, 500); 
     }
 
     function closeModal() {
-        clearTimeout(timerId);
+        clearTimeout(autoSaveTimeout);
         document.getElementById('modal').style.display = 'none';
         editingId = null;
     }
 
-    document.getElementById('saveBtn').onclick = saveBook;
-    document.getElementById('closeBtn').onclick = closeModal;
+    document.getElementById('saveBtn').onclick = submitData;
+    document.getElementById('cancelBtn').onclick = () => { closeModal(); startScanner(); };
 
-    // --- SORTING ENGINE ---
-    function getShelfSortValue(book) {
-        const genre = (book.genre || "").toLowerCase();
-        // Check if Non-Fiction (Contains Dewey-like tags or explicit Non-Fiction label)
-        const isNonFiction = genre.includes('science') || genre.includes('history') || genre.includes('non-fiction');
-        
-        if (isNonFiction) {
-            // Placeholder: In real production, you'd map subjects to Dewey decimals
-            return `1-${book.genre}-${book.title}`; 
-        } else {
-            // Fiction: Author Last Name + Title
-            const nameParts = book.author.split(' ');
-            const lastName = nameParts[nameParts.length - 1];
-            return `0-${lastName}-${book.title}`;
-        }
-    }
-
+    // --- RENDER & SEARCH ---
     onValue(libRef, (snap) => {
-        const data = snap.val() || {};
-        allBooks = Object.entries(data).map(([id, val]) => ({ id, ...val }));
-        
-        // Sorting Logic
-        allBooks.sort((a, b) => getShelfSortValue(a).localeCompare(getShelfSortValue(b)));
-        
+        allBooks = [];
+        const data = snap.val();
+        for (let id in data) allBooks.push({ id, ...data[id] });
         render(allBooks);
-        updateStats(allBooks);
     });
 
     function render(list) {
-        const container = document.getElementById('library');
-        container.innerHTML = '';
+        const bl = document.getElementById('bookList');
+        bl.innerHTML = '';
         list.forEach(b => {
-            const card = document.createElement('div');
-            card.className = 'book-item';
-            card.onclick = () => {
-                openModal(b, b.id);
-                document.getElementById('timerBar').classList.add('paused');
-            };
-            card.innerHTML = `
-                <img src="${b.coverImage}" class="book-cover">
-                <div class="book-info">
-                    <h4>${b.title}</h4>
-                    <small>${b.author}</small><br>
-                    <span class="shelf-tag">📍 ${b.locationInLibrary}</span>
-                    <span class="shelf-tag">📑 ${b.isbn}</span>
+            const div = document.createElement('div');
+            div.className = 'book-card';
+            div.onclick = () => openModal(b, b.id);
+            div.innerHTML = `
+                <img src="${b.cover}" class="book-cover">
+                <div style="flex:1">
+                    <div style="font-weight:bold">${b.title}</div>
+                    <div style="font-size:12px; opacity:0.7">${b.author}</div>
+                    <div style="font-size:10px; margin-top:5px; color:var(--p)">LOC: ${b.locationInLibrary}</div>
                 </div>
             `;
-            container.appendChild(card);
+            bl.appendChild(div);
         });
     }
 
-    function updateStats(list) {
-        document.getElementById('stat-total').innerText = list.length;
-        document.getElementById('stat-avail').innerText = list.filter(b => b.currentUser === "None").length;
-        document.getElementById('stat-reserves').innerText = list.reduce((acc, b) => acc + parseInt(b.reservesPlaced || 0), 0);
-    }
-
     document.getElementById('search').oninput = (e) => {
-        const t = e.target.value.toLowerCase();
-        const filtered = allBooks.filter(b => 
-            b.title.toLowerCase().includes(t) || b.author.toLowerCase().includes(t) || b.isbn.includes(t)
-        );
-        render(filtered);
+        const val = e.target.value.toLowerCase();
+        render(allBooks.filter(b => b.title.toLowerCase().includes(val) || b.isbn.includes(val)));
     };
 </script>
 </body>
