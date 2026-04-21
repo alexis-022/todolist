@@ -3,86 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Tasks</title>
+    <title>My Functional To-Do</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #121212;
-            color: white;
-            display: flex;
-            justify-content: center;
-            padding-top: 50px;
-        }
-        .container {
-            width: 100%;
-            max-width: 400px;
-            background: #1e1e1e;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        h2 { text-align: center; color: #00d4ff; }
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        input {
-            flex: 1;
-            padding: 10px;
-            border-radius: 6px;
-            border: none;
-            outline: none;
-        }
-        button {
-            padding: 10px 15px;
-            border-radius: 6px;
-            border: none;
-            background: #00d4ff;
-            color: black;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        button:hover { background: #009cbd; }
-        ul { list-style: none; padding: 0; }
-        li {
-            background: #2a2a2a;
-            margin-bottom: 8px;
-            padding: 12px;
-            border-radius: 6px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            animation: fadeIn 0.3s ease;
-        }
-        .delete-btn {
-            background: #ff4d4d;
-            padding: 5px 10px;
-            font-size: 12px;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        body { font-family: sans-serif; background: #121212; color: white; display: flex; justify-content: center; padding: 50px; }
+        .box { background: #1e1e1e; padding: 20px; border-radius: 8px; width: 300px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        input { width: 70%; padding: 8px; border-radius: 4px; border: none; }
+        button { padding: 8px; cursor: pointer; background: #00d4ff; border: none; border-radius: 4px; font-weight: bold; }
+        ul { list-style: none; padding: 0; margin-top: 20px; }
+        li { background: #2a2a2a; padding: 10px; margin-bottom: 5px; border-radius: 4px; display: flex; justify-content: space-between; }
+        .del-btn { background: #ff4d4d; color: white; font-size: 10px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Cloud To-Do</h2>
-    <div class="input-group">
-        <input type="text" id="taskInput" placeholder="What needs doing?">
-        <button id="addBtn">Add</button>
-    </div>
+<div class="box">
+    <h3>Cloud Tasks</h3>
+    <input type="text" id="taskInput" placeholder="New task...">
+    <button id="addBtn">Add</button>
     <ul id="taskList"></ul>
 </div>
 
 <script type="module">
-    // 1. Import Firebase tools
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, push, onChildAdded, remove, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // 2. YOUR CONFIG (PASTE YOURS HERE)
+    // Your specific config
     const firebaseConfig = {
         apiKey: "AIzaSyA1cOfZneI_ss-QmQCkZostIQngpQ_JbtE",
         authDomain: "to-do-list-2fbf9.firebaseapp.com",
@@ -93,7 +38,6 @@
         appId: "1:712067178045:web:e4091b51ce4b8fb1d69454"
     };
 
-    // 3. Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const todoRef = ref(db, 'tasks');
@@ -102,49 +46,35 @@
     const btn = document.getElementById('addBtn');
     const list = document.getElementById('taskList');
 
-    // FUNCTION: Send to Database
+    // Add task to Firebase
     btn.onclick = () => {
-        const text = input.value.trim();
-        if (text !== "") {
-            push(todoRef, {
-                task: text,
-                timestamp: Date.now()
-            });
+        if (input.value.trim() !== "") {
+            push(todoRef, { text: input.value });
             input.value = "";
         }
     };
 
-    // Allow "Enter" key to add tasks
-    input.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") btn.click();
-    });
-
-    // LISTEN: When a new task is added to the DB (from any device)
+    // Listen for new tasks
     onChildAdded(todoRef, (snapshot) => {
-        const data = snapshot.val();
-        const key = snapshot.key;
-
         const li = document.createElement('li');
-        li.id = key; // Set ID so we can find it to remove it later
+        li.id = snapshot.key;
         li.innerHTML = `
-            <span>${data.task}</span>
-            <button class="delete-btn" onclick="deleteTask('${key}')">Delete</button>
+            <span>${snapshot.val().text}</span>
+            <button class="del-btn" onclick="deleteTask('${snapshot.key}')">X</button>
         `;
         list.appendChild(li);
     });
 
-    // LISTEN: When a task is deleted from the DB
+    // Listen for deletions
     onChildRemoved(todoRef, (snapshot) => {
-        const li = document.getElementById(snapshot.key);
-        if (li) li.remove();
+        const item = document.getElementById(snapshot.key);
+        if (item) item.remove();
     });
 
-    // FUNCTION: Delete from Database
-    window.deleteTask = (key) => {
-        const itemRef = ref(db, `tasks/${key}`);
-        remove(itemRef);
+    // Global function to delete
+    window.deleteTask = (id) => {
+        remove(ref(db, `tasks/${id}`));
     };
-
 </script>
 
 </body>
