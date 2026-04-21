@@ -3,45 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Nexus Ultra Library</title>
+    <title>Nexus Intelligence Library</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root { --p: #6366f1; --bg: #0b0f1a; --card: rgba(30, 41, 59, 0.7); --t: #f8fafc; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--t); margin: 0; padding: 20px; min-height: 100vh; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--t); margin: 0; padding: 15px; min-height: 100vh; }
 
-        /* Search & Layout */
-        .search-input { width: 100%; background: var(--card); border: 1px solid rgba(255,255,255,0.1); padding: 16px; border-radius: 16px; color: white; margin-bottom: 25px; backdrop-filter: blur(10px); }
-        .book-grid { display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); padding-bottom: 100px; }
-        .book-card { background: var(--card); border-radius: 18px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
+        /* Session Defaults Bar */
+        .session-defaults { background: #1e293b; padding: 12px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--p); display: flex; flex-direction: column; gap: 8px; }
+        .session-defaults h4 { margin: 0; font-size: 11px; text-transform: uppercase; color: var(--p); }
+        .default-inputs { display: flex; gap: 10px; }
+        .default-inputs input { flex: 1; padding: 8px; font-size: 12px; background: #0b0f1a; border: 1px solid #334155; color: white; border-radius: 6px; }
+
+        .search-input { width: 100%; background: var(--card); border: 1px solid rgba(255,255,255,0.1); padding: 14px; border-radius: 14px; color: white; margin-bottom: 20px; backdrop-filter: blur(10px); }
+        .book-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); padding-bottom: 100px; }
+        .book-card { background: var(--card); border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
         .card-img { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #1e293b; }
-        .card-meta { padding: 10px; font-size: 0.8rem; }
+        .card-meta { padding: 8px; font-size: 0.75rem; }
 
-        /* Scanner Overlay */
         #scanner-view { display: none; position: fixed; inset: 0; background: #000; z-index: 5000; flex-direction: column; }
         #reader { flex: 1; }
-        .close-scan { position: absolute; top: 40px; right: 20px; background: #ef4444; border: none; color: white; padding: 10px 20px; border-radius: 20px; z-index: 5001; font-weight: bold; }
+        .close-scan { position: absolute; top: 30px; right: 20px; background: #ef4444; border: none; color: white; padding: 8px 16px; border-radius: 20px; z-index: 5001; font-weight: bold; }
 
-        /* The 25-Field Modal */
         #modal { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 4000; padding: 20px; overflow-y: auto; }
         .modal-content { max-width: 600px; margin: auto; }
         .timer-track { width: 100%; height: 4px; background: #334155; border-radius: 2px; margin-bottom: 20px; overflow: hidden; }
         #timerBar { width: 100%; height: 100%; background: var(--p); transform-origin: left; transition: transform 5s linear; }
         .paused { transform: scaleX(1) !important; background: #f59e0b !important; transition: none !important; }
 
-        /* Dynamic Form Grid */
-        .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .wide { grid-column: span 2; }
-        label { font-size: 9px; font-weight: 800; color: var(--p); text-transform: uppercase; display: block; margin-bottom: 4px; }
-        input, textarea { width: 100%; background: #1e293b; border: 1px solid #334155; padding: 12px; border-radius: 10px; color: white; font-size: 14px; }
+        label { font-size: 9px; font-weight: 800; color: var(--p); text-transform: uppercase; display: block; margin-bottom: 3px; }
+        input, textarea { width: 100%; background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 8px; color: white; font-size: 14px; }
         
-        .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: var(--p); border-radius: 50%; border: none; color: white; font-size: 24px; box-shadow: 0 10px 20px rgba(0,0,0,0.4); z-index: 100; }
-        .save-btn { background: var(--p); color: white; border: none; padding: 16px; border-radius: 14px; width: 100%; font-weight: 800; margin: 20px 0; }
+        .fab { position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px; background: var(--p); border-radius: 50%; border: none; color: white; font-size: 24px; z-index: 100; }
+        .save-btn { background: var(--p); color: white; border: none; padding: 16px; border-radius: 12px; width: 100%; font-weight: 800; margin: 15px 0; }
+        .duplicate-alert { background: #f59e0b; color: #000; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; display: none; }
     </style>
 </head>
 <body>
 
-    <input type="text" id="search" class="search-input" placeholder="Search archive...">
+    <div class="session-defaults">
+        <h4>Session Defaults</h4>
+        <div class="default-inputs">
+            <input type="text" id="def-location" placeholder="Default Location (e.g. Shelf A)">
+            <input type="text" id="def-genre" placeholder="Default Genre">
+        </div>
+    </div>
+
+    <input type="text" id="search" class="search-input" placeholder="Search title or ISBN...">
     <div class="book-grid" id="bookGrid"></div>
     <button class="fab" id="openScanner">📸</button>
 
@@ -52,9 +63,11 @@
 
     <div id="modal">
         <div class="modal-content">
+            <div id="dupWarning" class="duplicate-alert">⚠️ You already have this book. Click "Save" to just add another copy.</div>
             <div class="timer-track"><div id="timerBar"></div></div>
             <div class="field-grid" id="formContainer"></div>
-            <button class="save-btn" id="confirmSave">SAVE TO CLOUD</button>
+            <button class="save-btn" id="confirmSave">SAVE ENTRY</button>
+            <button onclick="closeModal()" style="background:none; border:none; color:#94a3b8; width:100%">Cancel</button>
         </div>
     </div>
 
@@ -76,7 +89,6 @@
     const db = getDatabase(app);
     const libRef = ref(db, 'nexus_ultra_v1');
 
-    // ALL 25 CATEGORIES
     const categories = [
         "title", "author", "isbn", "publishDate", "publisher", "genre", "seriesInfo", 
         "language", "pageCount", "locationInLibrary", "numCopies", "copyAvailability",
@@ -100,65 +112,64 @@
         scanner.start({ facingMode: "environment" }, { fps: 20 }, onScan);
     };
 
-    document.getElementById('stopScan').onclick = () => {
-        scanner.stop(); document.getElementById('scanner-view').style.display = 'none';
-    };
+    document.getElementById('stopScan').onclick = () => { scanner.stop(); document.getElementById('scanner-view').style.display = 'none'; };
 
     async function onScan(isbn) {
         scanner.stop();
         document.getElementById('scanner-view').style.display = 'none';
         
-        // UPGRADED API FETCH (Google Books + OpenLibrary Fallback)
+        // CHECK FOR DUPLICATES FIRST
+        const existingBook = allBooks.find(b => b.isbn === isbn);
+        
         let bookInfo = { isbn: isbn };
         try {
             const gRes = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
             const gData = await gRes.json();
-            
-            if (gData.items && gData.items[0]) {
+            if (gData.items?.[0]) {
                 const vol = gData.items[0].volumeInfo;
-                bookInfo.title = vol.title;
-                bookInfo.author = vol.authors?.join(', ');
-                bookInfo.publisher = vol.publisher;
-                bookInfo.publishDate = vol.publishedDate;
-                bookInfo.pageCount = vol.pageCount;
-                bookInfo.summary = vol.description;
-                bookInfo.genre = vol.categories?.[0];
-                bookInfo.language = vol.language;
-                bookInfo.cover = vol.imageLinks?.thumbnail?.replace('http:', 'https:');
-            } else {
-                // Fallback to OpenLibrary
-                const oRes = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
-                const oData = await oRes.json();
-                const b = oData[`ISBN:${isbn}`];
-                if (b) {
-                    bookInfo.title = b.title;
-                    bookInfo.author = b.authors?.[0]?.name;
-                    bookInfo.cover = b.cover?.large;
-                }
+                bookInfo = { ...bookInfo, title: vol.title, author: vol.authors?.join(', '), publisher: vol.publisher, publishDate: vol.publishedDate, pageCount: vol.pageCount, summary: vol.description, genre: vol.categories?.[0], language: vol.language, cover: vol.imageLinks?.thumbnail?.replace('http:', 'https:') };
             }
-        } catch(e) { console.error("API Fail"); }
+        } catch(e) { console.error("API error"); }
 
-        // Populate with "Nil" for missing values
-        categories.forEach(c => currentBook[c] = bookInfo[c] || "Nil");
+        // MAPPING: Apply Session Defaults and remove 'Nil'
+        categories.forEach(c => {
+            let val = bookInfo[c] || "";
+            if (c === 'locationInLibrary' && document.getElementById('def-location').value) val = document.getElementById('def-location').value;
+            if (c === 'genre' && document.getElementById('def-genre').value) val = document.getElementById('def-genre').value;
+            if (c === 'numCopies' && !val) val = 1;
+            currentBook[c] = val;
+        });
         currentBook.cover = bookInfo.cover || "";
-        showModal(currentBook);
+
+        if (existingBook) {
+            document.getElementById('dupWarning').style.display = 'block';
+            editingId = existingBook.id; // Switch to update mode for that ID
+            currentBook.numCopies = parseInt(existingBook.numCopies || 1) + 1;
+            showModal(currentBook, existingBook.id, true);
+        } else {
+            document.getElementById('dupWarning').style.display = 'none';
+            showModal(currentBook);
+        }
     }
 
-    function showModal(book, id = null) {
+    function showModal(book, id = null, isDuplicate = false) {
         editingId = id;
         categories.forEach(c => document.getElementById(`f-${c}`).value = book[c]);
         document.getElementById('modal').style.display = 'block';
+        
         const bar = document.getElementById('timerBar');
         bar.classList.remove('paused');
         bar.style.transform = 'scaleX(1)';
 
+        // AUTO SAVE LOGIC (Disabled if it's a duplicate or manual edit)
         if (!id) {
             setTimeout(() => { bar.style.transform = 'scaleX(0)'; }, 50);
             autoTimer = setTimeout(save, 5000);
-        } else { bar.classList.add('paused'); }
+        } else {
+            bar.classList.add('paused');
+        }
     }
 
-    // INTERACTION OBSERVER
     document.getElementById('formContainer').addEventListener('focusin', () => {
         clearTimeout(autoTimer);
         document.getElementById('timerBar').classList.add('paused');
@@ -172,9 +183,14 @@
         if (editingId) update(ref(db, `nexus_ultra_v1/${editingId}`), data);
         else push(libRef, data);
 
-        document.getElementById('modal').style.display = 'none';
-        // IMMEDIATELY REOPEN SCANNER
+        closeModal();
         document.getElementById('openScanner').click();
+    }
+
+    function closeModal() {
+        clearTimeout(autoTimer);
+        document.getElementById('modal').style.display = 'none';
+        editingId = null;
     }
 
     document.getElementById('confirmSave').onclick = save;
@@ -182,13 +198,6 @@
     onValue(libRef, (snap) => {
         const data = snap.val();
         allBooks = data ? Object.entries(data).map(([id, v]) => ({id, ...v})) : [];
-        // SORTING: Fiction (A-Z Name) vs Non-Fiction (Genre)
-        allBooks.sort((a,b) => {
-            const isNF = (g) => ["Science", "History", "Non-fiction"].some(x => g?.includes(x));
-            if (isNF(a.genre) && !isNF(b.genre)) return 1;
-            if (!isNF(a.genre) && isNF(b.genre)) return -1;
-            return a.title.localeCompare(b.title);
-        });
         render();
     });
 
@@ -199,19 +208,14 @@
             const div = document.createElement('div');
             div.className = 'book-card';
             div.onclick = () => showModal(b, b.id);
-            div.innerHTML = `
-                <img src="${b.cover || 'https://via.placeholder.com/150x225?text=No+Cover'}" class="card-img">
-                <div class="card-meta">
-                    <strong>${b.title}</strong><br><span style="opacity:0.6">${b.author}</span>
-                </div>
-            `;
+            div.innerHTML = `<img src="${b.cover || 'https://via.placeholder.com/150x225?text=No+Cover'}" class="card-img"><div class="card-meta"><strong>${b.title}</strong><br>${b.author}</div>`;
             grid.appendChild(div);
         });
     }
 
     document.getElementById('search').oninput = (e) => {
         const v = e.target.value.toLowerCase();
-        render(allBooks.filter(b => b.title.toLowerCase().includes(v) || b.isbn.includes(v)));
+        render(allBooks.filter(b => (b.title || "").toLowerCase().includes(v) || (b.isbn || "").includes(v)));
     };
 </script>
 </body>
