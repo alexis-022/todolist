@@ -3,55 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Master List</title>
+    <title>Live Message Board</title>
     <style>
-        :root { --bg: #121212; --card: #1e1e1e; --accent: #00d4ff; --text: #eeeeee; }
-        .light-mode { --bg: #f0f2f5; --card: #ffffff; --accent: #007bff; --text: #333333; }
-
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; padding: 20px; transition: 0.3s; }
-        .container { width: 100%; max-width: 450px; background: var(--card); padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        body { font-family: 'Inter', sans-serif; background: #0f172a; color: white; margin: 0; display: flex; flex-direction: column; height: 100vh; }
         
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .input-box { display: flex; gap: 10px; margin-bottom: 20px; }
-        input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #252525; color: white; }
-        .light-mode input { background: #eee; color: black; border: 1px solid #ccc; }
+        /* Chat Header */
+        .header { background: #1e293b; padding: 15px; text-align: center; border-bottom: 2px solid #334155; }
         
-        button { padding: 10px 15px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; }
-        #addBtn { background: var(--accent); color: white; }
-        .theme-btn { background: #444; color: white; font-size: 12px; }
-
-        ul { list-style: none; padding: 0; }
-        li { background: #2a2a2a; padding: 15px; margin-bottom: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; cursor: pointer; }
-        .light-mode li { background: #f9f9f9; border: 1px solid #ddd; }
+        /* Message Area */
+        #board { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
         
-        .completed { opacity: 0.4; text-decoration: line-through; border-left: 4px solid #888 !important; }
-        li:not(.completed) { border-left: 4px solid var(--accent); }
+        /* Message Bubbles */
+        .msg { background: #334155; padding: 12px; border-radius: 12px; max-width: 80%; position: relative; animation: pop 0.2s ease; }
+        .msg.me { align-self: flex-end; background: #3b82f6; }
+        .user { font-size: 0.7rem; font-weight: bold; color: #94a3b8; margin-bottom: 4px; display: block; }
+        .text { word-wrap: break-word; }
+        .time { font-size: 0.6rem; opacity: 0.6; float: right; margin-top: 5px; }
+        img { max-width: 100%; border-radius: 8px; margin-top: 10px; }
 
-        .task-info { display: flex; flex-direction: column; flex-grow: 1; }
-        .user-tag { font-size: 0.65rem; font-weight: bold; color: var(--accent); text-transform: uppercase; }
-        .timestamp { font-size: 0.65rem; color: #888; }
-        .del-btn { background: #ff4d4d; color: white; margin-left: 10px; }
+        /* Input Area */
+        .input-area { background: #1e293b; padding: 20px; display: flex; gap: 10px; }
+        input { flex: 1; padding: 12px; border-radius: 8px; border: none; background: #0f172a; color: white; outline: none; }
+        button { background: #3b82f6; color: white; border: none; padding: 0 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
+        @keyframes pop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header">
-        <h2>Cloud Tasks</h2>
-        <button class="theme-btn" id="themeToggle">🌓 Toggle Theme</button>
-    </div>
-    
-    <div class="input-box">
-        <input type="text" id="taskInput" placeholder="What's the plan?">
-        <button id="addBtn">Add</button>
-    </div>
-    
-    <ul id="taskList"></ul>
+<div class="header">
+    <h2 id="roomName">Global Board</h2>
+</div>
+
+<div id="board"></div>
+
+<div class="input-area">
+    <input type="text" id="msgInput" placeholder="Type a message or paste image URL...">
+    <button id="sendBtn">Send</button>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, push, onChildAdded, remove, onChildRemoved, update, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyA1cOfZneI_ss-QmQCkZostIQngpQ_JbtE",
@@ -65,72 +58,54 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const todoRef = ref(db, 'tasks');
+    const boardRef = ref(db, 'messages');
 
-    // 1. NICKNAME LOGIC
-    let username = localStorage.getItem('chat-name') || prompt("Enter a nickname:") || "Anon";
-    localStorage.setItem('chat-name', username);
+    // NICKNAME - Save to browser so it persists
+    let myName = localStorage.getItem('user') || prompt("Pick a nickname:") || "Guest";
+    localStorage.setItem('user', myName);
 
-    // 2. THEME LOGIC
-    document.getElementById('themeToggle').onclick = () => document.body.classList.toggle('light-mode');
+    const input = document.getElementById('msgInput');
+    const btn = document.getElementById('sendBtn');
+    const board = document.getElementById('board');
 
-    const input = document.getElementById('taskInput');
-    const btn = document.getElementById('addBtn');
-    const list = document.getElementById('taskList');
-
-    // ADD TASK
+    // SEND LOGIC
     btn.onclick = () => {
         if (input.value.trim()) {
-            push(todoRef, {
+            push(boardRef, {
+                user: myName,
                 text: input.value,
-                user: username,
-                done: false,
                 time: Date.now()
             });
             input.value = "";
         }
     };
 
-    // RENDER LOGIC
-    const createTaskUI = (snapshot) => {
-        const data = snapshot.val();
-        const key = snapshot.key;
-        const time = new Date(data.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-
-        const li = document.createElement('li');
-        li.id = key;
-        if (data.done) li.classList.add('completed');
+    // RECEIVE LOGIC
+    onChildAdded(boardRef, (snap) => {
+        const data = snap.val();
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `msg ${data.user === myName ? 'me' : ''}`;
         
-        li.innerHTML = `
-            <div class="task-info" onclick="toggleDone('${key}', ${data.done})">
-                <span class="user-tag">${data.user}</span>
-                <span>${data.text}</span>
-                <span class="timestamp">${time}</span>
-            </div>
-            <button class="del-btn" onclick="deleteTask('${key}')">Delete</button>
+        const time = new Date(data.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        // Basic Image Detection: If text ends in .jpg, .png, .gif
+        let content = `<span class="text">${data.text}</span>`;
+        if (data.text.match(/\.(jpeg|jpg|gif|png)$/) != null) {
+            content += `<br><img src="${data.text}">`;
+        }
+
+        msgDiv.innerHTML = `
+            <span class="user">${data.user}</span>
+            ${content}
+            <span class="time">${time}</span>
         `;
-        return li;
-    };
-
-    onChildAdded(todoRef, (snap) => list.appendChild(createTaskUI(snap)));
-
-    // SYNC UPDATES (Done/Undone)
-    onChildChanged(todoRef, (snap) => {
-        const oldLi = document.getElementById(snap.key);
-        const newLi = createTaskUI(snap);
-        list.replaceChild(newLi, oldLi);
+        
+        board.appendChild(msgDiv);
+        board.scrollTop = board.scrollHeight; // Auto-scroll to bottom
     });
-
-    onChildRemoved(todoRef, (snap) => document.getElementById(snap.key)?.remove());
-
-    // DATABASE ACTIONS
-    window.deleteTask = (id) => remove(ref(db, `tasks/${id}`));
-    
-    window.toggleDone = (id, currentStatus) => {
-        update(ref(db, `tasks/${id}`), { done: !currentStatus });
-    };
 
     input.onkeypress = (e) => { if(e.key === "Enter") btn.click(); };
 </script>
+
 </body>
 </html>
