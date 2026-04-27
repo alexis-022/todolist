@@ -3,253 +3,298 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Nexus Librarian Pro</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <title>Nexus Chat Pro</title>
     <style>
-        :root { --p: #6366f1; --bg: #0b0f1a; --card: rgba(30, 41, 59, 0.7); --t: #f8fafc; }
+        :root {
+            --p: #6366f1;
+            --bg: #0b0f1a;
+            --card: rgba(30, 41, 59, 0.7);
+            --t: #f8fafc;
+            --my-msg: #4f46e5;
+            --their-msg: #1e293b;
+        }
+
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--t); margin: 0; padding: 15px; min-height: 100vh; }
 
-        .session-defaults { background: #1e293b; padding: 12px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--p); }
-        .default-inputs { display: flex; gap: 10px; margin-top: 8px; }
-        .default-inputs input { flex: 1; padding: 8px; font-size: 12px; background: #0b0f1a; border: 1px solid #334155; color: white; border-radius: 6px; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--t);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            background-image: radial-gradient(circle at top right, #1e1b4b, var(--bg));
+        }
 
-        /* Section Headings */
-        .section-header { margin: 30px 0 15px 0; padding-bottom: 8px; border-bottom: 2px solid var(--p); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--p); display: flex; justify-content: space-between; align-items: center; }
-        .section-count { font-size: 0.7rem; background: var(--p); color: white; padding: 2px 8px; border-radius: 10px; }
+        /* Login Overlay */
+        #login-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
 
-        .book-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); margin-bottom: 40px; }
-        .book-card { background: var(--card); border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
-        .card-img { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #1e293b; }
-        .card-meta { padding: 8px; font-size: 0.7rem; }
-        . Dewey-tag { font-family: monospace; color: #fbbf24; font-weight: bold; }
+        .login-card {
+            background: var(--card);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
 
-        #scanner-view { display: none; position: fixed; inset: 0; background: #000; z-index: 5000; flex-direction: column; }
-        #reader { flex: 1; }
-        
-        #modal { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 4000; padding: 20px; overflow-y: auto; }
-        .modal-content { max-width: 600px; margin: auto; }
-        .timer-track { width: 100%; height: 4px; background: #334155; border-radius: 2px; margin-bottom: 20px; overflow: hidden; }
-        #timerBar { width: 100%; height: 100%; background: var(--p); transform-origin: left; transition: transform 5s linear; }
-        .paused { transform: scaleX(1) !important; background: #f59e0b !important; transition: none !important; }
+        /* Header */
+        header {
+            padding: 15px 20px;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-        .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .wide { grid-column: span 2; }
-        label { font-size: 9px; font-weight: 800; color: var(--p); text-transform: uppercase; display: block; margin-bottom: 3px; }
-        input { width: 100%; background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 8px; color: white; font-size: 14px; }
-        
-        .fab { position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px; background: var(--p); border-radius: 50%; border: none; color: white; font-size: 24px; z-index: 100; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
-        .save-btn { background: var(--p); color: white; border: none; padding: 16px; border-radius: 12px; width: 100%; font-weight: 800; margin: 15px 0; }
+        .room-info h2 { margin: 0; font-size: 1.1rem; }
+        .room-info p { margin: 0; font-size: 0.75rem; opacity: 0.6; }
+
+        /* Message Area */
+        #chat-window {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            scroll-behavior: smooth;
+        }
+
+        .msg {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            position: relative;
+            animation: pop 0.2s ease-out;
+        }
+
+        @keyframes pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .msg.mine {
+            align-self: flex-end;
+            background: var(--my-msg);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .msg.theirs {
+            align-self: flex-start;
+            background: var(--their-msg);
+            border-bottom-left-radius: 4px;
+        }
+
+        .sender-name {
+            font-size: 0.65rem;
+            font-weight: 800;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+        }
+
+        .mine .sender-name { color: rgba(255,255,255,0.7); }
+        .theirs .sender-name { color: var(--p); }
+
+        .timestamp {
+            font-size: 0.6rem;
+            opacity: 0.5;
+            margin-top: 4px;
+            display: block;
+            text-align: right;
+        }
+
+        /* Input Area */
+        .input-wrap {
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.9);
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .input-box {
+            background: #1e293b;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            padding: 5px 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 12px;
+            color: white;
+            outline: none;
+            font-size: 1rem;
+        }
+
+        button.send-btn {
+            background: var(--p);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        button.send-btn:active { transform: scale(0.9); }
+
+        /* Generic UI */
+        .field { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #334155; background: #0f172a; color: white; margin-bottom: 15px; }
+        .primary-btn { width: 100%; padding: 16px; border-radius: 12px; border: none; background: var(--p); color: white; font-weight: bold; font-size: 1rem; cursor: pointer; }
+
     </style>
 </head>
 <body>
 
-    <div class="session-defaults">
-        <h4 style="margin:0; font-size:11px; text-transform:uppercase; color:var(--p)">Session Defaults</h4>
-        <div class="default-inputs">
-            <input type="text" id="def-location" placeholder="Shelf Location">
-            <input type="text" id="def-genre" placeholder="Genre (e.g. Fiction)">
+    <!-- Login Layer -->
+    <div id="login-overlay">
+        <div class="login-card">
+            <h1 style="margin-top:0">Nexus Chat</h1>
+            <p style="opacity:0.6; margin-bottom: 25px;">Enter your credentials to join</p>
+            <input type="text" id="username" class="field" placeholder="Username">
+            <input type="text" id="roomCode" class="field" placeholder="Room Code (e.g. General)">
+            <button id="joinBtn" class="primary-btn">Enter Room</button>
         </div>
     </div>
 
-    <input type="text" id="search" style="width:100%; background:var(--card); border:1px solid rgba(255,255,255,0.1); padding:14px; border-radius:14px; color:white; margin-bottom:10px;" placeholder="Search by title, author, or Dewey...">
+    <header>
+        <div class="room-info">
+            <h2 id="room-display">Room Name</h2>
+            <p id="user-display">Logged in as...</p>
+        </div>
+        <button onclick="location.reload()" style="background:transparent; border:none; color:#ef4444; font-size: 0.8rem; font-weight: bold;">LEAVE</button>
+    </header>
 
-    <div id="fiction-section" style="display:none;">
-        <div class="section-header">Fiction <span>A-Z by Author</span></div>
-        <div class="book-grid" id="fictionGrid"></div>
-    </div>
+    <main id="chat-window"></main>
 
-    <div id="nonfiction-section" style="display:none;">
-        <div class="section-header">Non-Fiction <span>Dewey Decimal Order</span></div>
-        <div class="book-grid" id="nonfictionGrid"></div>
-    </div>
-
-    <button class="fab" id="openScanner">📸</button>
-
-    <div id="scanner-view">
-        <button onclick="stopScan()" style="position:absolute; top:30px; right:20px; background:#ef4444; border:none; color:white; padding:10px 20px; border-radius:20px; z-index:5001;">CANCEL</button>
-        <div id="reader"></div>
-    </div>
-
-    <div id="modal">
-        <div class="modal-content">
-            <div class="timer-track"><div id="timerBar"></div></div>
-            <div class="field-grid" id="formContainer"></div>
-            <button class="save-btn" id="confirmSave">SAVE TO SHELF</button>
-            <button onclick="closeModal()" style="background:none; border:none; color:#94a3b8; width:100%; margin-bottom:40px;">Discard</button>
+    <div class="input-wrap">
+        <div class="input-box">
+            <input type="text" id="messageInput" placeholder="Type a message...">
+            <button class="send-btn" id="sendBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
         </div>
     </div>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, push, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyA1cOfZneI_ss-QmQCkZostIQngpQ_JbtE",
-        authDomain: "to-do-list-2fbf9.firebaseapp.com",
-        databaseURL: "https://to-do-list-2fbf9-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "to-do-list-2fbf9",
-        storageBucket: "to-do-list-2fbf9.firebasestorage.app",
-        messagingSenderId: "712067178045",
-        appId: "1:712067178045:web:e4091b51ce4b8fb1d69454"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const libRef = ref(db, 'nexus_ultra_v2');
-
-    const categories = [
-        "title", "author", "isbn", "genre", "deweyDecimal", "seriesName", "seriesPosition",
-        "locationInLibrary", "numCopies", "publishDate", "publisher", "pageCount", "summary"
-    ];
-
-    const container = document.getElementById('formContainer');
-    categories.forEach(cat => {
-        const div = document.createElement('div');
-        div.className = (cat === 'title' || cat === 'summary') ? "wide" : "";
-        div.innerHTML = `<label>${cat}</label><input id="f-${cat}">`;
-        container.appendChild(div);
-    });
-
-    let autoTimer, currentBook = {}, editingId = null, allBooks = [];
-    const scanner = new Html5Qrcode("reader");
-
-    document.getElementById('openScanner').onclick = () => {
-        document.getElementById('scanner-view').style.display = 'flex';
-        scanner.start({ facingMode: "environment" }, { fps: 20 }, onScan);
-    };
-
-    window.stopScan = () => { scanner.stop(); document.getElementById('scanner-view').style.display = 'none'; };
-
-    async function onScan(isbn) {
-        stopScan();
-        let fetchedData = { isbn: isbn, numCopies: 1 };
-        const existing = allBooks.find(b => b.isbn === isbn);
-
-        try {
-            // Priority 1: Google Books (better for Dewey & Series)
-            const gRes = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
-            const gData = await gRes.json();
-            if (gData.items?.[0]?.volumeInfo) {
-                const v = gData.items[0].volumeInfo;
-                fetchedData.title = v.title || "";
-                fetchedData.author = v.authors?.join(', ') || "";
-                fetchedData.genre = v.categories?.[0] || "";
-                fetchedData.summary = v.description || "";
-                fetchedData.cover = v.imageLinks?.thumbnail?.replace('http:', 'https:') || "";
-                
-                // Fetching Dewey from specialized identifier if available
-                const ddc = v.industryIdentifiers?.find(i => i.type === "OTHER")?.identifier || "";
-                fetchedData.deweyDecimal = ddc.includes('.') ? ddc : "";
-            }
-
-            // Priority 2: OpenLibrary (better for Series Position)
-            const oRes = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
-            const oData = await oRes.json();
-            const b = oData[`ISBN:${isbn}`];
-            if (b) {
-                fetchedData.title = fetchedData.title || b.title || "";
-                fetchedData.author = fetchedData.author || b.authors?.[0]?.name || "";
-                fetchedData.cover = fetchedData.cover || b.cover?.large || "";
-            }
-        } catch(e) { console.warn("API error"); }
-
-        categories.forEach(c => {
-            let val = fetchedData[c] || "";
-            if (c === 'locationInLibrary') val = document.getElementById('def-location').value || val;
-            if (c === 'genre' && !val) val = document.getElementById('def-genre').value || "";
-            if (c === 'numCopies' && existing) val = (parseInt(existing.numCopies) || 1) + 1;
-            currentBook[c] = val;
-        });
-        currentBook.cover = fetchedData.cover || "";
-        showModal(currentBook, existing ? existing.id : null);
-    }
-
-    function showModal(book, id = null) {
-        editingId = id;
-        categories.forEach(c => document.getElementById(`f-${c}`).value = book[c] || "");
-        document.getElementById('modal').style.display = 'block';
-        const bar = document.getElementById('timerBar');
-        bar.classList.remove('paused');
-        bar.style.transform = 'scaleX(1)';
-        if (!id) {
-            setTimeout(() => { bar.style.transform = 'scaleX(0)'; }, 50);
-            autoTimer = setTimeout(save, 5000);
-        } else { bar.classList.add('paused'); }
-    }
-
-    document.getElementById('formContainer').addEventListener('focusin', () => {
-        clearTimeout(autoTimer);
-        document.getElementById('timerBar').classList.add('paused');
-    });
-
-    function save() {
-        clearTimeout(autoTimer);
-        const data = { cover: currentBook.cover || "" };
-        categories.forEach(c => data[c] = document.getElementById(`f-${c}`).value);
-        if (editingId) update(ref(db, `nexus_ultra_v2/${editingId}`), data);
-        else push(libRef, data);
-        closeModal();
-        setTimeout(() => document.getElementById('openScanner').click(), 600);
-    }
-
-    window.closeModal = function() { clearTimeout(autoTimer); document.getElementById('modal').style.display = 'none'; editingId = null; };
-    document.getElementById('confirmSave').onclick = save;
-
-    onValue(libRef, (snap) => {
-        const data = snap.val();
-        allBooks = data ? Object.entries(data).map(([id, v]) => ({id, ...v})) : [];
-        render();
-    });
-
-    function render(list = allBooks) {
-        const fGrid = document.getElementById('fictionGrid');
-        const nfGrid = document.getElementById('nonfictionGrid');
-        fGrid.innerHTML = ''; nfGrid.innerHTML = '';
-
-        // SEPARATION LOGIC
-        const fiction = list.filter(b => (b.genre || "").toLowerCase().includes("fiction") && !(b.genre || "").toLowerCase().includes("non"));
-        const nonfiction = list.filter(b => (b.genre || "").toLowerCase().includes("non-fiction") || (b.genre || "").toLowerCase().includes("nonfiction") || b.deweyDecimal);
-
-        // FICTION SORT: Last Name -> Series -> Position -> Title
-        fiction.sort((a,b) => {
-            const getLast = (n) => n.split(' ').pop().toLowerCase();
-            const author = getLast(a.author).localeCompare(getLast(b.author));
-            if (author !== 0) return author;
-            const series = (a.seriesName || "").localeCompare(b.seriesName || "");
-            if (series !== 0) return series;
-            const pos = (parseInt(a.seriesPosition) || 0) - (parseInt(b.seriesPosition) || 0);
-            if (pos !== 0) return pos;
-            return a.title.localeCompare(b.title);
-        });
-
-        // NON-FICTION SORT: Dewey -> Title
-        nonfiction.sort((a,b) => {
-            const dewey = (parseFloat(a.deweyDecimal) || 999) - (parseFloat(b.deweyDecimal) || 999);
-            if (dewey !== 0) return dewey;
-            return a.title.localeCompare(b.title);
-        });
-
-        document.getElementById('fiction-section').style.display = fiction.length ? 'block' : 'none';
-        document.getElementById('nonfiction-section').style.display = nonfiction.length ? 'block' : 'none';
-
-        const draw = (b, container) => {
-            const div = document.createElement('div');
-            div.className = 'book-card';
-            div.onclick = () => showModal(b, b.id);
-            div.innerHTML = `
-                <img src="${b.cover || 'https://via.placeholder.com/150x225?text=No+Cover'}" class="card-img">
-                <div class="card-meta">
-                    <span class="Dewey-tag">${b.deweyDecimal ? '№ ' + b.deweyDecimal : ''}</span><br>
-                    <strong>${b.title}</strong><br>
-                    ${b.seriesName ? '<small>#' + b.seriesPosition + ' ' + b.seriesName + '</small>' : b.author}
-                </div>`;
-            container.appendChild(div);
+        // Your Firebase Configuration (Using the same one from our Library project)
+        const firebaseConfig = {
+            apiKey: "AIzaSyA1cOfZneI_ss-QmQCkZostIQngpQ_JbtE",
+            authDomain: "to-do-list-2fbf9.firebaseapp.com",
+            databaseURL: "https://to-do-list-2fbf9-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "to-do-list-2fbf9",
+            storageBucket: "to-do-list-2fbf9.firebasestorage.app",
+            messagingSenderId: "712067178045",
+            appId: "1:712067178045:web:e4091b51ce4b8fb1d69454"
         };
 
-        fiction.forEach(b => draw(b, fGrid));
-        nonfiction.forEach(b => draw(b, nfGrid));
-    }
-</script>
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let myUser = "";
+        let currentRoom = "";
+
+        const loginOverlay = document.getElementById('login-overlay');
+        const chatWindow = document.getElementById('chat-window');
+        const messageInput = document.getElementById('messageInput');
+
+        // JOIN ROOM LOGIC
+        document.getElementById('joinBtn').onclick = () => {
+            const user = document.getElementById('username').value.trim();
+            const room = document.getElementById('roomCode').value.trim();
+
+            if (user && room) {
+                myUser = user;
+                currentRoom = room.toLowerCase();
+                
+                document.getElementById('room-display').innerText = "# " + room;
+                document.getElementById('user-display').innerText = "Logged in as " + user;
+                loginOverlay.style.display = 'none';
+
+                startChat();
+            } else {
+                alert("Please enter both a username and a room code.");
+            }
+        };
+
+        function startChat() {
+            const chatRef = ref(db, 'chats/' + currentRoom);
+
+            // Listen for Messages
+            onValue(chatRef, (snapshot) => {
+                chatWindow.innerHTML = "";
+                const data = snapshot.val();
+                if (data) {
+                    Object.values(data).forEach(msg => {
+                        renderMessage(msg);
+                    });
+                    chatWindow.scrollTop = chatWindow.scrollHeight;
+                }
+            });
+        }
+
+        function renderMessage(msg) {
+            const isMine = msg.user === myUser;
+            const div = document.createElement('div');
+            div.className = `msg ${isMine ? 'mine' : 'theirs'}`;
+            
+            // Format Time
+            const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "";
+
+            div.innerHTML = `
+                <span class="sender-name">${msg.user}</span>
+                <div class="text">${msg.text}</div>
+                <span class="timestamp">${time}</span>
+            `;
+            chatWindow.appendChild(div);
+        }
+
+        // SEND MESSAGE LOGIC
+        function sendMessage() {
+            const text = messageInput.value.trim();
+            if (text && currentRoom) {
+                const chatRef = ref(db, 'chats/' + currentRoom);
+                push(chatRef, {
+                    user: myUser,
+                    text: text,
+                    timestamp: Date.now() // Local timestamp fallback
+                });
+                messageInput.value = "";
+            }
+        }
+
+        document.getElementById('sendBtn').onclick = sendMessage;
+        messageInput.onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
+
+    </script>
 </body>
 </html>
