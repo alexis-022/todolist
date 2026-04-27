@@ -1,0 +1,17 @@
+{
+  "name": "Nexus Chat Pro",
+  "short_name": "Nexus",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0b0f1a",
+  "theme_color": "#6366f1",
+  "description": "A real-time, high-performance messaging platform.",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/5968/5968756.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
