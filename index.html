@@ -13,10 +13,18 @@
       --card-bg: #1f2833;
       --text-main: #c5c6c7;
       --text-bright: #ffffff;
-      --active-accent: #1f4068;
+      --active-accent: #151d2a;
       --active-glow: #4eedb2;
       --upcoming-accent: #66fcf1;
       --break-accent: #ffb703;
+
+      /* Subject Custom Colors Variables */
+      --color-calculus: #98ff98;
+      --color-physics: #3a86ff;
+      --color-economics: #800020;
+      --color-history: #ffbe0b;
+      --color-english: #ffffff;
+      --color-default: #66fcf1;
     }
 
     body {
@@ -94,7 +102,7 @@
       padding: 16px;
       border-radius: 14px;
       background: rgba(255, 255, 255, 0.03);
-      border-left: 6px solid transparent;
+      border-left: 6px solid var(--subject-color, var(--default-color));
       position: relative;
       scroll-margin: 20px;
       box-sizing: border-box;
@@ -120,7 +128,7 @@
     /* ACTIVE HERO CLASS */
     .active-class {
       background: var(--active-accent);
-      border-left-color: var(--active-glow);
+      border-left-color: var(--subject-color) !important;
       padding: 20px;
       margin: 14px 0; 
       box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
@@ -151,7 +159,7 @@
 
     /* UPCOMING CLASSES */
     .upcoming-class {
-      border-left-color: rgba(102, 252, 241, 0.3);
+      border-left-color: var(--subject-color);
     }
 
     .status-badge {
@@ -160,8 +168,8 @@
       text-transform: uppercase;
       letter-spacing: 1.2px;
     }
-    .active-class .status-badge { color: var(--active-glow); }
-    .upcoming-class .status-badge { color: var(--upcoming-accent); margin-bottom: 6px;}
+    .active-class .status-badge { color: var(--subject-color); }
+    .upcoming-class .status-badge { color: var(--subject-color); margin-bottom: 6px;}
 
     .class-title {
       font-size: 1.25rem;
@@ -192,7 +200,8 @@
       font-size: 0.85rem;
       margin-top: 8px;
       font-style: italic;
-      color: var(--active-glow);
+      color: var(--text-main);
+      opacity: 0.8;
       font-weight: 500;
     }
 
@@ -295,7 +304,7 @@
       border-radius: 8px;
       margin-bottom: 8px;
       font-size: 0.8rem;
-      border-left: 3px solid rgba(102, 252, 241, 0.4);
+      border-left: 3px solid var(--subject-color, var(--upcoming-accent));
       position: relative;
       box-sizing: border-box;
     }
@@ -360,6 +369,22 @@
       console.error(e);
       document.getElementById('classes-list').innerHTML = "<div class='no-classes'>Database connection failure.</div>";
     });
+
+    // Color Parser Engine helper
+    function getSubjectColor(subjectName) {
+      if (!subjectName) return '#66fcf1';
+      const name = subjectName.toLowerCase();
+      
+      if (name.includes('calc') || name.includes('math')) return '#98ff98'; // Light Green
+      if (name.includes('phys')) return '#3a86ff'; // Blue
+      if (name.includes('econ')) return '#800020'; // Maroon
+      if (name.includes('hist')) return '#ffbe0b'; // Yellow
+      if (name.includes('engl') || name.includes('lit')) return '#ffffff'; // White
+      
+      // Fallbacks for generic non-subject breaks or other blocks
+      if (name.includes('lunch') || name.includes('interval') || name.includes('break')) return '#ffb703'; 
+      return '#66fcf1'; // Teal Default
+    }
 
     function updateDashboard(schedule) {
       const now = new Date();
@@ -437,7 +462,6 @@
           if (currentTimeString >= safeStart && currentTimeString <= safeEnd) {
             activeItem = { ...item, type: 'ACTIVE' };
           } else if (currentTimeString > safeEnd) {
-            // Keep past items visible if they ended within the 2-hour window (120 mins)
             const endMins = parseTimeToMinutes(safeEnd);
             if ((currentMinutes - endMins) <= 120) {
               pastStack.push({ ...item, type: 'PAST' });
@@ -452,10 +476,12 @@
         activeItem = { ...upcomingStack.shift(), type: 'NEXT' };
       }
 
-      // Render Historical Elements (Retained inside the 2-hour window)
+      // Render Historical Elements
       pastStack.forEach(item => {
         const card = document.createElement('div');
+        const color = getSubjectColor(item.name);
         card.className = 'class-card past-class';
+        card.style.setProperty('--subject-color', color);
         const roomBadge = item.room ? `<div class="class-room">${item.room}</div>` : '';
         card.innerHTML = `
           <div class="class-title">${item.name}</div>
@@ -474,15 +500,14 @@
         
         const safeStart = padTimeStr(activeItem.start);
         const safeEnd = padTimeStr(activeItem.end);
+        const color = getSubjectColor(activeItem.name);
+        card.style.setProperty('--subject-color', color);
         
         const lowerName = activeItem.name.toLowerCase();
         let labelText = "Now In Progress";
-        let ringColor = "#4eedb2"; 
 
         if (lowerName.includes('lunch') || lowerName.includes('interval') || lowerName.includes('break')) {
           labelText = "Break Period";
-          card.style.borderLeftColor = "var(--break-accent)";
-          ringColor = "#ffb703"; 
         } else if (lowerName.includes('duty') || lowerName.includes('club') || lowerName.includes('event')) {
           labelText = "Activity Slot";
         }
@@ -496,7 +521,6 @@
           const elapsed = currentMinutes - startMin;
           const progressPercent = Math.min(Math.max(elapsed / totalDuration, 0), 1);
 
-          // RELOCATED PROGRESS RING: Embedded inline right next to the status badge text
           card.innerHTML = `
             <div class="active-header-row">
               <div class="status-badge">${labelText}</div>
@@ -514,17 +538,15 @@
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, 32, 32);
             
-            // Draw Background Track Ring
             ctx.beginPath();
             ctx.arc(16, 16, 13, 0, 2 * Math.PI);
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
             ctx.lineWidth = 3;
             ctx.stroke();
 
-            // Draw Micro Active Arc
             ctx.beginPath();
             ctx.arc(16, 16, 13, -0.5 * Math.PI, (-0.5 * Math.PI) + (2 * Math.PI * progressPercent));
-            ctx.strokeStyle = ringColor;
+            ctx.strokeStyle = color;
             ctx.lineWidth = 3;
             ctx.lineCap = 'round';
             ctx.stroke();
@@ -538,11 +560,11 @@
             if (untilStart > 60) {
               countdownText = `Starts in ${Math.floor(untilStart / 60)}h ${untilStart % 60}m`;
             }
-            countdownText = `<div class="countdown" style="color: var(--upcoming-accent);">${countdownText}</div>`;
+            countdownText = `<div class="countdown">${countdownText}</div>`;
           }
 
           card.innerHTML = `
-            <div class="status-badge" style="color: var(--upcoming-accent);">Up Next Focus</div>
+            <div class="status-badge">Up Next Focus</div>
             <div class="class-title">${activeItem.name}</div>
             <div class="class-time">Starts at ${format12Hour(safeStart)}</div>
             ${activeItem.room ? `<div class="class-room">${activeItem.room}</div>` : ''}
@@ -556,7 +578,9 @@
       // Render Trailing Future Cards
       upcomingStack.forEach(item => {
         const card = document.createElement('div');
+        const color = getSubjectColor(item.name);
         card.className = 'class-card upcoming-class';
+        card.style.setProperty('--subject-color', color);
         const safeStart = padTimeStr(item.start);
         const roomBadge = item.room ? `<div class="class-room">${item.room}</div>` : '';
         
@@ -567,7 +591,7 @@
           if (untilStart > 60) {
             countdownText = `${Math.floor(untilStart / 60)}h ${untilStart % 60}m`;
           }
-          countdownElementText = `<div class="countdown" style="color: var(--text-main); font-weight: normal; font-size: 0.8rem;">In ${countdownText}</div>`;
+          countdownElementText = `<div class="countdown">In ${countdownText}</div>`;
         }
 
         card.innerHTML = `
@@ -607,9 +631,11 @@
         if (dayData) {
           const sorted = Object.values(dayData).sort((a,b) => padTimeStr(a.start).localeCompare(padTimeStr(b.start)));
           sorted.forEach(item => {
+            const color = getSubjectColor(item.name);
             const roomTxt = item.room ? ` | Rm: ${item.room}` : '';
             const mini = document.createElement('div');
             mini.className = 'mini-card';
+            mini.style.setProperty('--subject-color', color);
             mini.innerHTML = `
               <div class="mini-title">${item.name}</div>
               <div class="mini-meta">${format12Hour(padTimeStr(item.start))}${roomTxt}</div>
