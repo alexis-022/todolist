@@ -78,7 +78,6 @@
       gap: 12px;
       max-height: 60vh;
       overflow-y: auto;
-      /* FIX: Added uniform side padding to accommodate scale bounds */
       padding: 6px 8px; 
       box-sizing: border-box;
     }
@@ -118,12 +117,11 @@
       font-size: 0.7rem;
     }
 
-    /* ACTIVE HERO CLASS - Adjusted layout limits to prevent left element slice */
+    /* ACTIVE HERO CLASS - Built with safe canvas side channels */
     .active-class {
       background: var(--active-accent);
       border-left-color: var(--active-glow);
-      padding: 24px 20px;
-      /* FIX: Removed transform scale to protect borders, using margin adjustments for depth instead */
+      padding: 24px 75px 24px 20px; /* Allocated room for right-aligned canvas tracker ring */
       margin: 14px 0; 
       box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
     }
@@ -132,11 +130,15 @@
       color: var(--text-bright);
     }
     .active-class .class-room {
-      top: 24px;
-      right: 20px;
+      position: static; /* Let standard card handle absolute nodes safely */
+      display: inline-block;
+      margin-top: 8px;
       background: rgba(78, 237, 178, 0.2);
       color: var(--active-glow);
       font-size: 0.9rem;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-weight: bold;
     }
     .active-class .class-time {
       font-size: 1rem;
@@ -144,21 +146,17 @@
       margin-top: 6px;
     }
 
-    /* Progress Tracker Bar */
-    .progress-bar-container {
-      width: 100%;
-      height: 4px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 2px;
-      margin-top: 14px;
-      overflow: hidden;
-    }
-    .progress-bar-fill {
-      height: 100%;
-      width: 0%;
-      background: var(--active-glow);
-      border-radius: 2px;
-      transition: width 1s linear;
+    /* Absolute Placement Block for Canvas Progress Ring Indicator */
+    .canvas-ring-container {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 46px;
+      height: 46px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     /* UPCOMING CLASSES */
@@ -450,7 +448,11 @@
           if (currentTimeString >= safeStart && currentTimeString <= safeEnd) {
             activeItem = { ...item, type: 'ACTIVE' };
           } else if (currentTimeString > safeEnd) {
-            pastStack.push({ ...item, type: 'PAST' });
+            // FEATURE 5 IMPLEMENTATION: Verify if the past class ended within the 2-hour window (120 mins)
+            const endMins = parseTimeToMinutes(safeEnd);
+            if ((currentMinutes - endMins) <= 120) {
+              pastStack.push({ ...item, type: 'PAST' });
+            }
           } else {
             upcomingStack.push({ ...item, type: 'UPCOMING' });
           }
@@ -461,10 +463,7 @@
         activeItem = { ...upcomingStack.shift(), type: 'NEXT' };
       }
 
-      if (pastStack.length > 2) {
-        pastStack = pastStack.slice(-2);
-      }
-
+      // Render Historical Elements (Retained dynamically inside the 2-hour filter)
       pastStack.forEach(item => {
         const card = document.createElement('div');
         card.className = 'class-card past-class';
@@ -477,20 +476,24 @@
       });
 
       let activeCardElement = null;
+      let renderCanvasCallback = null;
+
       if (activeItem) {
         const card = document.createElement('div');
         card.className = 'class-card active-class';
         activeCardElement = card;
-        const roomBadge = activeItem.room ? `<div class="class-room">${activeItem.room}</div>` : '';
         
         const safeStart = padTimeStr(activeItem.start);
         const safeEnd = padTimeStr(activeItem.end);
         
         const lowerName = activeItem.name.toLowerCase();
         let labelText = "Now In Progress";
+        let ringColor = "#4eedb2"; // Matches var(--active-glow) dynamically
+
         if (lowerName.includes('lunch') || lowerName.includes('interval') || lowerName.includes('break')) {
           labelText = "Break Period";
           card.style.borderLeftColor = "var(--break-accent)";
+          ringColor = "#ffb703"; 
         } else if (lowerName.includes('duty') || lowerName.includes('club') || lowerName.includes('event')) {
           labelText = "Activity Slot";
         }
@@ -502,18 +505,43 @@
           
           const totalDuration = endMin - startMin;
           const elapsed = currentMinutes - startMin;
-          const progressPercent = Math.min(Math.max((elapsed / totalDuration) * 100, 0), 100);
+          const progressPercent = Math.min(Math.max(elapsed / totalDuration, 0), 1);
 
+          // FEATURE 1 IMPLEMENTATION: Replaced line tracker with Canvas element structural blueprint
           card.innerHTML = `
             <div class="status-badge">${labelText}</div>
             <div class="class-title">${activeItem.name}</div>
             <div class="class-time">${format12Hour(safeStart)} - ${format12Hour(safeEnd)}</div>
-            ${roomBadge}
+            ${activeItem.room ? `<div class="class-room">${activeItem.room}</div>` : ''}
             <div class="countdown">Ends in ${remaining} min${remaining > 1 ? 's' : ''}</div>
-            <div class="progress-bar-container">
-              <div class="progress-bar-fill" style="width: ${progressPercent}%;"></div>
+            <div class="canvas-ring-container">
+              <canvas id="active-progress-ring" width="92" height="92" style="width:46px; height:46px;"></canvas>
             </div>
           `;
+
+          // Track the canvas callback routine so it can execute smoothly post insertion
+          renderCanvasCallback = () => {
+            const canvas = document.getElementById('active-progress-ring');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 92, 92);
+            
+            // Draw Background Track Ring Circle
+            ctx.beginPath();
+            ctx.arc(46, 46, 40, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.lineWidth = 6;
+            ctx.stroke();
+
+            // Draw Active Arc Progress Ring
+            ctx.beginPath();
+            ctx.arc(46, 46, 40, -0.5 * Math.PI, (-0.5 * Math.PI) + (2 * Math.PI * progressPercent));
+            ctx.strokeStyle = ringColor;
+            ctx.lineWidth = 6;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+          };
+
         } else {
           let countdownText = '';
           if (lookaheadNote.style.display === 'none') {
@@ -529,13 +557,15 @@
             <div class="status-badge" style="color: var(--upcoming-accent);">Up Next Focus</div>
             <div class="class-title">${activeItem.name}</div>
             <div class="class-time">Starts at ${format12Hour(safeStart)}</div>
-            ${roomBadge}
+            ${activeItem.room ? `<div class="class-room" style="position:absolute; top:24px; right:20px;">${activeItem.room}</div>` : ''}
             ${countdownText}
           `;
         }
         listContainer.appendChild(card);
+        if (renderCanvasCallback) renderCanvasCallback();
       }
 
+      // Render Trailing Future Cards
       upcomingStack.forEach(item => {
         const card = document.createElement('div');
         card.className = 'class-card upcoming-class';
