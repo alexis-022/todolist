@@ -129,9 +129,15 @@
     import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
 
     // 1. Replace with your actual Firebase Realtime Database URL
-    const firebaseConfig = {
-      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com/"
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyA1cOfZneI_ss-QmQCkZostIQngpQ_JbtE",
+  authDomain: "to-do-list-2fbf9.firebaseapp.com",
+  databaseURL: "https://to-do-list-2fbf9-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "to-do-list-2fbf9",
+  storageBucket: "to-do-list-2fbf9.firebasestorage.app",
+  messagingSenderId: "712067178045",
+  appId: "1:712067178045:web:e4091b51ce4b8fb1d69454"
+};
 
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
