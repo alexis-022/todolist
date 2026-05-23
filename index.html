@@ -61,9 +61,9 @@
       background: rgba(255, 255, 255, 0.03);
       border-left: 6px solid transparent;
       transition: all 0.3s ease;
+      position: relative;
     }
 
-    /* Active Class Frame */
     .active-class {
       background: var(--active-accent);
       border-left-color: var(--active-glow);
@@ -81,7 +81,6 @@
     .active-class .status-badge { color: var(--active-glow); }
     .upcoming-class .status-badge { color: var(--upcoming-accent); }
 
-    /* Past Class Frame */
     .past-class {
       opacity: 0.2;
       filter: grayscale(80%);
@@ -101,6 +100,23 @@
       font-size: 0.9rem;
       margin-top: 4px;
       color: #9fedff;
+    }
+
+    .class-room {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: var(--text-bright);
+    }
+
+    .active-class .class-room {
+      background: rgba(78, 237, 178, 0.2);
+      color: var(--active-glow);
     }
 
     .countdown {
@@ -145,20 +161,18 @@
       if (snapshot.exists()) {
         const fullSchedule = snapshot.val();
         
-        // Dynamic iteration frame
         updateDashboard(fullSchedule);
         setInterval(() => updateDashboard(fullSchedule), 1000);
       } else {
         document.getElementById('classes-list').innerHTML = "<div class='no-classes'>❌ No database data match structure rules.</div>";
       }
     }).catch((e) => {
-      document.getElementById('classes-list').innerHTML = "<div class='no-classes'>❌ Engine connection crash. check token.</div>";
+      document.getElementById('classes-list').innerHTML = "<div class='no-classes'>❌ Engine connection crash.</div>";
     });
 
     function updateDashboard(schedule) {
       const now = new Date();
       
-      // Render system date/time configurations
       document.getElementById('current-time').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const currentDay = days[now.getDay()];
@@ -177,35 +191,40 @@
         return;
       }
 
-      // Loop through the daily layout explicitly tracking spell keys
       Object.keys(todaysClasses).forEach(key => {
         const item = todaysClasses[key];
         const card = document.createElement('div');
         card.className = 'class-card';
 
-        const classStartMinutes = parseTimeToMinutes(item.start);
-        const classEndMinutes = parseTimeToMinutes(item.end);
+        // Normalize time variables ensuring 24h safety strings (e.g. "9:55" -> "09:55")
+        const safeStart = padTimeStr(item.start);
+        const safeEnd = padTimeStr(item.end);
+
+        const classStartMinutes = parseTimeToMinutes(safeStart);
+        const classEndMinutes = parseTimeToMinutes(safeEnd);
         const currentMinutes = (now.getHours() * 60) + now.getMinutes();
 
-        if (currentTimeString >= item.start && currentTimeString <= item.end) {
-          // Inside Spell
+        // Optional UI room location text engine values
+        const roomBadge = item.room ? `<div class="class-room">${item.room}</div>` : '';
+
+        if (currentTimeString >= safeStart && currentTimeString <= safeEnd) {
           const remaining = classEndMinutes - currentMinutes;
           card.classList.add('active-class');
           card.innerHTML = `
             <div class="status-badge">🚨 Now</div>
             <div class="class-title">${item.name}</div>
-            <div class="class-time">${format12Hour(item.start)} - ${format12Hour(item.end)}</div>
+            <div class="class-time">${format12Hour(safeStart)} - ${format12Hour(safeEnd)}</div>
+            ${roomBadge}
             <div class="countdown">Ends in ${remaining} min${remaining > 1 ? 's' : ''}</div>
           `;
-        } else if (currentTimeString > item.end) {
-          // Ended Spell
+        } else if (currentTimeString > safeEnd) {
           card.classList.add('past-class');
           card.innerHTML = `
             <div class="class-title">${item.name}</div>
             <div class="class-time">Finished</div>
+            ${roomBadge}
           `;
         } else {
-          // Upcoming Spell
           const untilStart = classStartMinutes - currentMinutes;
           let countdownText = `Starts in ${untilStart} min${untilStart > 1 ? 's' : ''}`;
           if (untilStart > 60) {
@@ -218,12 +237,19 @@
           card.innerHTML = `
             <div class="status-badge">Up Next</div>
             <div class="class-title">${item.name}</div>
-            <div class="class-time">Starts at ${format12Hour(item.start)}</div>
+            <div class="class-time">Starts at ${format12Hour(safeStart)}</div>
+            ${roomBadge}
             <div class="countdown">${countdownText}</div>
           `;
         }
         listContainer.appendChild(card);
       });
+    }
+
+    // Helper to safely pad string times ensuring mathematical comparison sorting bounds
+    function padTimeStr(str) {
+      const [h, m] = str.split(':');
+      return `${h.padStart(2, '0')}:${m}`;
     }
 
     function parseTimeToMinutes(timeStr) {
