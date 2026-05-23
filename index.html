@@ -40,6 +40,7 @@
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
       display: flex;
       flex-direction: column;
+      box-sizing: border-box;
     }
 
     .header-section {
@@ -77,10 +78,11 @@
       gap: 12px;
       max-height: 60vh;
       overflow-y: auto;
-      padding-right: 4px;
+      /* FIX: Added uniform side padding to accommodate scale bounds */
+      padding: 6px 8px; 
+      box-sizing: border-box;
     }
 
-    /* Custom scrollbar for cleanly navigating heavy timelines */
     #classes-list::-webkit-scrollbar {
       width: 4px;
     }
@@ -94,9 +96,10 @@
       border-radius: 14px;
       background: rgba(255, 255, 255, 0.03);
       border-left: 6px solid transparent;
-      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
       position: relative;
       scroll-margin: 20px;
+      box-sizing: border-box;
+      width: 100%;
     }
 
     /* PAST CLASSES */
@@ -115,14 +118,14 @@
       font-size: 0.7rem;
     }
 
-    /* ACTIVE HERO CLASS */
+    /* ACTIVE HERO CLASS - Adjusted layout limits to prevent left element slice */
     .active-class {
       background: var(--active-accent);
       border-left-color: var(--active-glow);
-      transform: scale(1.03);
       padding: 24px 20px;
-      margin: 10px 0;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+      /* FIX: Removed transform scale to protect borders, using margin adjustments for depth instead */
+      margin: 14px 0; 
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
     }
     .active-class .class-title {
       font-size: 1.6rem;
@@ -177,6 +180,7 @@
       font-size: 1.25rem;
       font-weight: 700;
       color: var(--text-bright);
+      word-wrap: break-word;
     }
 
     .class-time {
@@ -227,7 +231,6 @@
     }
     .week-btn:hover {
       background: rgba(102, 252, 241, 0.1);
-      transform: translateY(-1px);
     }
 
     /* FULL WEEK MODAL OVERLAY */
@@ -250,11 +253,12 @@
     .modal-content {
       background: var(--card-bg);
       width: 100%;
-      max-width: 950px;
+      max-width: 1100px;
       border-radius: 20px;
       padding: 25px;
       box-shadow: 0 20px 50px rgba(0,0,0,0.8);
       position: relative;
+      box-sizing: border-box;
     }
     .close-btn {
       position: absolute;
@@ -272,12 +276,12 @@
     
     .grid-container {
       display: grid;
-      grid-template-columns: repeat(7, minmax(130px, 1fr));
+      grid-template-columns: repeat(7, minmax(135px, 1fr));
       gap: 10px;
       margin-top: 25px;
       overflow-x: auto;
     }
-    @media (max-width: 900px) {
+    @media (max-width: 980px) {
       .grid-container {
         display: flex;
         flex-direction: column;
@@ -288,6 +292,7 @@
       background: rgba(255,255,255,0.02);
       border-radius: 12px;
       padding: 10px;
+      box-sizing: border-box;
     }
     .day-header {
       text-align: center;
@@ -304,8 +309,10 @@
       margin-bottom: 8px;
       font-size: 0.8rem;
       border-left: 3px solid rgba(102, 252, 241, 0.4);
+      position: relative;
+      box-sizing: border-box;
     }
-    .mini-title { font-weight: bold; color: var(--text-bright); margin-bottom: 2px;}
+    .mini-title { font-weight: bold; color: var(--text-bright); margin-bottom: 2px; word-wrap: break-word;}
     .mini-meta { color: #888; font-size: 0.75rem; }
   </style>
 </head>
@@ -380,7 +387,6 @@
 
       let currentDayClasses = schedule[targetDay];
       
-      // Calculate if current day's events are entirely finished
       let isDayFinished = false;
       if (currentDayClasses && Object.keys(currentDayClasses).length > 0) {
         const sortedToday = Object.values(currentDayClasses).sort((a, b) => padTimeStr(a.start).localeCompare(padTimeStr(b.start)));
@@ -390,11 +396,8 @@
         }
       }
 
-      // FIX: Only loop forward into Next-Day Lookahead Mode if today has NO data or today's items are completely done.
       const lookaheadNote = document.getElementById('lookahead-note');
       if (!currentDayClasses || Object.keys(currentDayClasses).length === 0 || isDayFinished) {
-        
-        // Find the next calendar node that actually contains scheduled events
         let lookaheadIndex = 1;
         let foundNextDay = false;
         
@@ -437,7 +440,6 @@
       let upcomingStack = [];
       const currentMinutes = (now.getHours() * 60) + now.getMinutes();
 
-      // Categorize classes relative to active times
       sortedClasses.forEach(item => {
         if (lookaheadNote.style.display === 'block') {
           upcomingStack.push({ ...item, type: 'UPCOMING' });
@@ -463,7 +465,6 @@
         pastStack = pastStack.slice(-2);
       }
 
-      // Render History Nodes
       pastStack.forEach(item => {
         const card = document.createElement('div');
         card.className = 'class-card past-class';
@@ -475,7 +476,6 @@
         listContainer.appendChild(card);
       });
 
-      // Render Central Focus Hero Node
       let activeCardElement = null;
       if (activeItem) {
         const card = document.createElement('div');
@@ -486,13 +486,12 @@
         const safeStart = padTimeStr(activeItem.start);
         const safeEnd = padTimeStr(activeItem.end);
         
-        // Dynamically compute event labels to handle classes vs breaks cleanly
         const lowerName = activeItem.name.toLowerCase();
         let labelText = "Now In Progress";
-        if (lowerName.includes('lunch') || lowerName.includes('interval')) {
+        if (lowerName.includes('lunch') || lowerName.includes('interval') || lowerName.includes('break')) {
           labelText = "Break Period";
           card.style.borderLeftColor = "var(--break-accent)";
-        } else if (lowerName.includes('duty') || lowerName.includes('club')) {
+        } else if (lowerName.includes('duty') || lowerName.includes('club') || lowerName.includes('event')) {
           labelText = "Activity Slot";
         }
 
@@ -537,7 +536,6 @@
         listContainer.appendChild(card);
       }
 
-      // Render Trailing Future Nodes
       upcomingStack.forEach(item => {
         const card = document.createElement('div');
         card.className = 'class-card upcoming-class';
@@ -564,7 +562,6 @@
         listContainer.appendChild(card);
       });
 
-      // Feature Implementation: Scroll layout focus to active hero card seamlessly
       if (activeCardElement) {
         setTimeout(() => {
           activeCardElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -576,13 +573,11 @@
       const target = document.getElementById('modal-grid-target');
       target.innerHTML = '';
       
-      // Extended day map indexing array parameters to pull Saturday and Sunday nodes
       const orderOfDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
       orderOfDays.forEach(day => {
         const dayData = schedule[day];
         
-        // Skip building visual columns for Saturday or Sunday if they contain no dataset arrays
         if ((day === 'Saturday' || day === 'Sunday') && (!dayData || Object.keys(dayData).length === 0)) {
           return;
         }
