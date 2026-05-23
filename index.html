@@ -16,6 +16,7 @@
       --active-accent: #1f4068;
       --active-glow: #4eedb2;
       --upcoming-accent: #66fcf1;
+      --break-accent: #ffb703;
     }
 
     body {
@@ -74,6 +75,18 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      max-height: 60vh;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    /* Custom scrollbar for cleanly navigating heavy timelines */
+    #classes-list::-webkit-scrollbar {
+      width: 4px;
+    }
+    #classes-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
     }
 
     .class-card {
@@ -83,6 +96,7 @@
       border-left: 6px solid transparent;
       transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
       position: relative;
+      scroll-margin: 20px;
     }
 
     /* PAST CLASSES */
@@ -236,7 +250,7 @@
     .modal-content {
       background: var(--card-bg);
       width: 100%;
-      max-width: 900px;
+      max-width: 950px;
       border-radius: 20px;
       padding: 25px;
       box-shadow: 0 20px 50px rgba(0,0,0,0.8);
@@ -258,12 +272,12 @@
     
     .grid-container {
       display: grid;
-      grid-template-columns: repeat(5, minmax(140px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(7, minmax(130px, 1fr));
+      gap: 10px;
       margin-top: 25px;
       overflow-x: auto;
     }
-    @media (max-width: 768px) {
+    @media (max-width: 900px) {
       .grid-container {
         display: flex;
         flex-direction: column;
@@ -304,7 +318,7 @@
       <div id="current-time">00:00:00</div>
     </div>
     <div id="classes-list">
-      <div class="no-classes">Connecting to Firebase...</div>
+      <div class="no-classes">Connecting to Realtime Hub...</div>
     </div>
     <button class="week-btn" id="open-week-btn">View Full Week Timetable</button>
   </div>
@@ -355,18 +369,18 @@
 
     function updateDashboard(schedule) {
       const now = new Date();
-      
       document.getElementById('current-time').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      let displayDay = days[now.getDay()];
+      let targetDay = days[now.getDay()];
       
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const currentTimeString = `${hours}:${minutes}`;
 
-      let currentDayClasses = schedule[displayDay];
+      let currentDayClasses = schedule[targetDay];
       
+      // Calculate if current day's events are entirely finished
       let isDayFinished = false;
       if (currentDayClasses && Object.keys(currentDayClasses).length > 0) {
         const sortedToday = Object.values(currentDayClasses).sort((a, b) => padTimeStr(a.start).localeCompare(padTimeStr(b.start)));
@@ -376,25 +390,41 @@
         }
       }
 
+      // FIX: Only loop forward into Next-Day Lookahead Mode if today has NO data or today's items are completely done.
       const lookaheadNote = document.getElementById('lookahead-note');
-      if (displayDay === 'Saturday' || displayDay === 'Sunday' || isDayFinished) {
-        lookaheadNote.style.display = 'block';
-        if (displayDay === 'Friday' || displayDay === 'Saturday' || displayDay === 'Sunday') {
-          displayDay = 'Monday';
+      if (!currentDayClasses || Object.keys(currentDayClasses).length === 0 || isDayFinished) {
+        
+        // Find the next calendar node that actually contains scheduled events
+        let lookaheadIndex = 1;
+        let foundNextDay = false;
+        
+        while (lookaheadIndex <= 7) {
+          const nextDayCheck = days[(now.getDay() + lookaheadIndex) % 7];
+          if (schedule[nextDayCheck] && Object.keys(schedule[nextDayCheck]).length > 0) {
+            targetDay = nextDayCheck;
+            foundNextDay = true;
+            break;
+          }
+          lookaheadIndex++;
+        }
+        
+        if (foundNextDay) {
+          lookaheadNote.style.display = 'block';
+          lookaheadNote.innerText = `${targetDay} Schedule Preview`;
         } else {
-          displayDay = days[now.getDay() + 1];
+          lookaheadNote.style.display = 'none';
         }
       } else {
         lookaheadNote.style.display = 'none';
       }
 
-      document.getElementById('current-day').innerText = displayDay;
-      const targetDayClasses = schedule[displayDay];
+      document.getElementById('current-day').innerText = targetDay;
+      const targetDayClasses = schedule[targetDay];
       const listContainer = document.getElementById('classes-list');
       listContainer.innerHTML = '';
 
       if (!targetDayClasses || Object.keys(targetDayClasses).length === 0) {
-        listContainer.innerHTML = "<div class='no-classes'>No classes scheduled.</div>";
+        listContainer.innerHTML = "<div class='no-classes'>No events scheduled.</div>";
         return;
       }
 
@@ -405,9 +435,9 @@
       let pastStack = [];
       let activeItem = null;
       let upcomingStack = [];
-
       const currentMinutes = (now.getHours() * 60) + now.getMinutes();
 
+      // Categorize classes relative to active times
       sortedClasses.forEach(item => {
         if (lookaheadNote.style.display === 'block') {
           upcomingStack.push({ ...item, type: 'UPCOMING' });
@@ -433,6 +463,7 @@
         pastStack = pastStack.slice(-2);
       }
 
+      // Render History Nodes
       pastStack.forEach(item => {
         const card = document.createElement('div');
         card.className = 'class-card past-class';
@@ -444,14 +475,27 @@
         listContainer.appendChild(card);
       });
 
+      // Render Central Focus Hero Node
+      let activeCardElement = null;
       if (activeItem) {
         const card = document.createElement('div');
         card.className = 'class-card active-class';
+        activeCardElement = card;
         const roomBadge = activeItem.room ? `<div class="class-room">${activeItem.room}</div>` : '';
         
         const safeStart = padTimeStr(activeItem.start);
         const safeEnd = padTimeStr(activeItem.end);
         
+        // Dynamically compute event labels to handle classes vs breaks cleanly
+        const lowerName = activeItem.name.toLowerCase();
+        let labelText = "Now In Progress";
+        if (lowerName.includes('lunch') || lowerName.includes('interval')) {
+          labelText = "Break Period";
+          card.style.borderLeftColor = "var(--break-accent)";
+        } else if (lowerName.includes('duty') || lowerName.includes('club')) {
+          labelText = "Activity Slot";
+        }
+
         if (activeItem.type === 'ACTIVE') {
           const startMin = parseTimeToMinutes(safeStart);
           const endMin = parseTimeToMinutes(safeEnd);
@@ -462,7 +506,7 @@
           const progressPercent = Math.min(Math.max((elapsed / totalDuration) * 100, 0), 100);
 
           card.innerHTML = `
-            <div class="status-badge">Now In Progress</div>
+            <div class="status-badge">${labelText}</div>
             <div class="class-title">${activeItem.name}</div>
             <div class="class-time">${format12Hour(safeStart)} - ${format12Hour(safeEnd)}</div>
             ${roomBadge}
@@ -493,6 +537,7 @@
         listContainer.appendChild(card);
       }
 
+      // Render Trailing Future Nodes
       upcomingStack.forEach(item => {
         const card = document.createElement('div');
         card.className = 'class-card upcoming-class';
@@ -518,19 +563,34 @@
         `;
         listContainer.appendChild(card);
       });
+
+      // Feature Implementation: Scroll layout focus to active hero card seamlessly
+      if (activeCardElement) {
+        setTimeout(() => {
+          activeCardElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+      }
     }
 
     function buildWeekModalGrid(schedule) {
       const target = document.getElementById('modal-grid-target');
       target.innerHTML = '';
-      const orderOfDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+      
+      // Extended day map indexing array parameters to pull Saturday and Sunday nodes
+      const orderOfDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
       orderOfDays.forEach(day => {
+        const dayData = schedule[day];
+        
+        // Skip building visual columns for Saturday or Sunday if they contain no dataset arrays
+        if ((day === 'Saturday' || day === 'Sunday') && (!dayData || Object.keys(dayData).length === 0)) {
+          return;
+        }
+
         const col = document.createElement('div');
         col.className = 'day-column';
         col.innerHTML = `<div class="day-header">${day.substring(0,3)}</div>`;
 
-        const dayData = schedule[day];
         if (dayData) {
           const sorted = Object.values(dayData).sort((a,b) => padTimeStr(a.start).localeCompare(padTimeStr(b.start)));
           sorted.forEach(item => {
