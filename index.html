@@ -117,46 +117,36 @@
       font-size: 0.7rem;
     }
 
-    /* ACTIVE HERO CLASS - Built with safe canvas side channels */
+    /* ACTIVE HERO CLASS */
     .active-class {
       background: var(--active-accent);
       border-left-color: var(--active-glow);
-      padding: 24px 75px 24px 20px; /* Allocated room for right-aligned canvas tracker ring */
+      padding: 20px;
       margin: 14px 0; 
       box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
     }
     .active-class .class-title {
-      font-size: 1.6rem;
+      font-size: 1.5rem;
       color: var(--text-bright);
-    }
-    .active-class .class-room {
-      position: static; /* Let standard card handle absolute nodes safely */
-      display: inline-block;
-      margin-top: 8px;
-      background: rgba(78, 237, 178, 0.2);
-      color: var(--active-glow);
-      font-size: 0.9rem;
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-weight: bold;
+      margin-top: 4px;
     }
     .active-class .class-time {
-      font-size: 1rem;
+      font-size: 0.95rem;
       color: #9fedff;
-      margin-top: 6px;
+      margin-top: 4px;
     }
 
-    /* Absolute Placement Block for Canvas Progress Ring Indicator */
-    .canvas-ring-container {
-      position: absolute;
-      right: 20px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 46px;
-      height: 46px;
+    /* Header line containing badge and the inline progress ring */
+    .active-header-row {
       display: flex;
-      justify-content: center;
       align-items: center;
+      gap: 8px;
+    }
+
+    .canvas-ring-inline {
+      width: 16px;
+      height: 16px;
+      display: block;
     }
 
     /* UPCOMING CLASSES */
@@ -169,10 +159,9 @@
       font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 1.2px;
-      margin-bottom: 6px;
     }
     .active-class .status-badge { color: var(--active-glow); }
-    .upcoming-class .status-badge { color: var(--upcoming-accent); }
+    .upcoming-class .status-badge { color: var(--upcoming-accent); margin-bottom: 6px;}
 
     .class-title {
       font-size: 1.25rem;
@@ -200,8 +189,8 @@
     }
 
     .countdown {
-      font-size: 0.9rem;
-      margin-top: 10px;
+      font-size: 0.85rem;
+      margin-top: 8px;
       font-style: italic;
       color: var(--active-glow);
       font-weight: 500;
@@ -448,7 +437,7 @@
           if (currentTimeString >= safeStart && currentTimeString <= safeEnd) {
             activeItem = { ...item, type: 'ACTIVE' };
           } else if (currentTimeString > safeEnd) {
-            // FEATURE 5 IMPLEMENTATION: Verify if the past class ended within the 2-hour window (120 mins)
+            // Keep past items visible if they ended within the 2-hour window (120 mins)
             const endMins = parseTimeToMinutes(safeEnd);
             if ((currentMinutes - endMins) <= 120) {
               pastStack.push({ ...item, type: 'PAST' });
@@ -463,7 +452,7 @@
         activeItem = { ...upcomingStack.shift(), type: 'NEXT' };
       }
 
-      // Render Historical Elements (Retained dynamically inside the 2-hour filter)
+      // Render Historical Elements (Retained inside the 2-hour window)
       pastStack.forEach(item => {
         const card = document.createElement('div');
         card.className = 'class-card past-class';
@@ -488,7 +477,7 @@
         
         const lowerName = activeItem.name.toLowerCase();
         let labelText = "Now In Progress";
-        let ringColor = "#4eedb2"; // Matches var(--active-glow) dynamically
+        let ringColor = "#4eedb2"; 
 
         if (lowerName.includes('lunch') || lowerName.includes('interval') || lowerName.includes('break')) {
           labelText = "Break Period";
@@ -507,37 +496,36 @@
           const elapsed = currentMinutes - startMin;
           const progressPercent = Math.min(Math.max(elapsed / totalDuration, 0), 1);
 
-          // FEATURE 1 IMPLEMENTATION: Replaced line tracker with Canvas element structural blueprint
+          // RELOCATED PROGRESS RING: Embedded inline right next to the status badge text
           card.innerHTML = `
-            <div class="status-badge">${labelText}</div>
+            <div class="active-header-row">
+              <div class="status-badge">${labelText}</div>
+              <canvas id="active-progress-ring" class="canvas-ring-inline" width="32" height="32"></canvas>
+            </div>
             <div class="class-title">${activeItem.name}</div>
             <div class="class-time">${format12Hour(safeStart)} - ${format12Hour(safeEnd)}</div>
             ${activeItem.room ? `<div class="class-room">${activeItem.room}</div>` : ''}
             <div class="countdown">Ends in ${remaining} min${remaining > 1 ? 's' : ''}</div>
-            <div class="canvas-ring-container">
-              <canvas id="active-progress-ring" width="92" height="92" style="width:46px; height:46px;"></canvas>
-            </div>
           `;
 
-          // Track the canvas callback routine so it can execute smoothly post insertion
           renderCanvasCallback = () => {
             const canvas = document.getElementById('active-progress-ring');
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, 92, 92);
+            ctx.clearRect(0, 0, 32, 32);
             
-            // Draw Background Track Ring Circle
+            // Draw Background Track Ring
             ctx.beginPath();
-            ctx.arc(46, 46, 40, 0, 2 * Math.PI);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-            ctx.lineWidth = 6;
+            ctx.arc(16, 16, 13, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+            ctx.lineWidth = 3;
             ctx.stroke();
 
-            // Draw Active Arc Progress Ring
+            // Draw Micro Active Arc
             ctx.beginPath();
-            ctx.arc(46, 46, 40, -0.5 * Math.PI, (-0.5 * Math.PI) + (2 * Math.PI * progressPercent));
+            ctx.arc(16, 16, 13, -0.5 * Math.PI, (-0.5 * Math.PI) + (2 * Math.PI * progressPercent));
             ctx.strokeStyle = ringColor;
-            ctx.lineWidth = 6;
+            ctx.lineWidth = 3;
             ctx.lineCap = 'round';
             ctx.stroke();
           };
@@ -557,7 +545,7 @@
             <div class="status-badge" style="color: var(--upcoming-accent);">Up Next Focus</div>
             <div class="class-title">${activeItem.name}</div>
             <div class="class-time">Starts at ${format12Hour(safeStart)}</div>
-            ${activeItem.room ? `<div class="class-room" style="position:absolute; top:24px; right:20px;">${activeItem.room}</div>` : ''}
+            ${activeItem.room ? `<div class="class-room">${activeItem.room}</div>` : ''}
             ${countdownText}
           `;
         }
