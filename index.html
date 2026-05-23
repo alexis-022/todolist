@@ -3,24 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Good Morning Dashboard</title>
+  <title>School Dashboard</title>
   <style>
     :root {
-      --bg-color: #121212;
-      --card-bg: #1e1e1e;
-      --text-main: #ffffff;
-      --text-muted: #aaaaaa;
-      --active-accent: #1565C0;
-      --active-glow: #00E676;
-      --upcoming-accent: #FFD600;
+      --bg-color: #0b0c10;
+      --card-bg: #1f2833;
+      --text-main: #c5c6c7;
+      --text-bright: #ffffff;
+      --active-accent: #1f4068;
+      --active-glow: #4eedb2;
+      --upcoming-accent: #66fcf1;
     }
 
     body {
-      font-family: '-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-family: '-apple-system', BlinkMacSystemFont, sans-serif;
       background-color: var(--bg-color);
       color: var(--text-main);
       margin: 0;
-      padding: 20px;
+      padding: 15px;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -29,87 +29,91 @@
 
     #timetable-container {
       width: 100%;
-      max-width: 450px;
+      max-width: 420px;
       background: var(--card-bg);
-      padding: 25px;
-      border-radius: 16px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
     }
 
     h2 {
-      margin-top: 0;
-      margin-bottom: 5px;
-      font-size: 1.5rem;
+      margin: 0 0 5px 0;
+      color: var(--text-bright);
+      font-size: 1.6rem;
     }
 
     #current-time {
       font-size: 1.1rem;
-      color: var(--text-muted);
-      margin-bottom: 25px;
+      color: var(--upcoming-accent);
+      font-weight: bold;
+      margin-bottom: 20px;
     }
 
     #classes-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
     }
 
     .class-card {
       padding: 16px;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.05);
-      border-left: 5px solid transparent;
-      transition: all 0.4s ease;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border-left: 6px solid transparent;
+      transition: all 0.3s ease;
     }
 
-    /* Active / Current Class Styling */
+    /* Active Class Frame */
     .active-class {
       background: var(--active-accent);
       border-left-color: var(--active-glow);
-      transform: scale(1.02);
-      box-shadow: 0 4px 20px rgba(0, 230, 118, 0.2);
+      transform: scale(1.01);
     }
 
-    .active-status {
-      font-weight: bold;
-      color: var(--active-glow);
-      font-size: 0.85rem;
+    .status-badge {
+      font-weight: 800;
+      font-size: 0.75rem;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 1.2px;
+      margin-bottom: 4px;
     }
+    
+    .active-class .status-badge { color: var(--active-glow); }
+    .upcoming-class .status-badge { color: var(--upcoming-accent); }
 
-    /* Past Class Styling */
+    /* Past Class Frame */
     .past-class {
-      opacity: 0.25;
-      filter: grayscale(100%);
+      opacity: 0.2;
+      filter: grayscale(80%);
     }
 
-    /* Upcoming Class Styling */
     .upcoming-class {
-      border-left-color: var(--upcoming-accent);
+      border-left-color: rgba(102, 252, 241, 0.3);
     }
 
     .class-title {
-      font-size: 1.2rem;
-      font-weight: 600;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-bright);
     }
 
     .class-time {
       font-size: 0.9rem;
-      color: var(--text-muted);
+      margin-top: 4px;
+      color: #9fedff;
     }
 
-    .active-class .class-time {
-      color: rgba(255, 255, 255, 0.8);
+    .countdown {
+      font-size: 0.85rem;
+      margin-top: 6px;
+      font-style: italic;
+      opacity: 0.9;
     }
 
     .no-classes {
       text-align: center;
-      padding: 30px;
-      color: var(--text-muted);
+      padding: 40px 20px;
+      color: var(--text-main);
       font-size: 1.1rem;
     }
   </style>
@@ -117,7 +121,7 @@
 <body>
 
   <div id="timetable-container">
-    <h2 id="current-day">Loading day...</h2>
+    <h2 id="current-day">Syncing...</h2>
     <div id="current-time">00:00:00</div>
     <div id="classes-list">
       <div class="no-classes">Connecting to Firebase...</div>
@@ -128,101 +132,111 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
     import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
 
-    // 1. Replace with your actual Firebase Realtime Database URL
-const firebaseConfig = {
-  apiKey: "AIzaSyA1cOfZneI_ss-QmQCkZostIQngpQ_JbtE",
-  authDomain: "to-do-list-2fbf9.firebaseapp.com",
-  databaseURL: "https://to-do-list-2fbf9-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "to-do-list-2fbf9",
-  storageBucket: "to-do-list-2fbf9.firebasestorage.app",
-  messagingSenderId: "712067178045",
-  appId: "1:712067178045:web:e4091b51ce4b8fb1d69454"
-};
+    // SWAP THIS OUT WITH YOUR REAL DB URL:
+    const firebaseConfig = {
+      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com/"
+    };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const database = getDatabase(app);
 
-    // 2. Fetch data once from RTDB and boot up the dynamic loop
     const timetableRef = ref(database, 'timetable');
     get(timetableRef).then((snapshot) => {
       if (snapshot.exists()) {
         const fullSchedule = snapshot.val();
         
-        // Run immediately on load, then update every second
+        // Dynamic iteration frame
         updateDashboard(fullSchedule);
-        setInterval(() => {
-          updateDashboard(fullSchedule);
-        }, 1000);
+        setInterval(() => updateDashboard(fullSchedule), 1000);
       } else {
-        document.getElementById('classes-list').innerHTML = "<div class='no-classes'>❌ No schedule data found in database.</div>";
+        document.getElementById('classes-list').innerHTML = "<div class='no-classes'>❌ No database data match structure rules.</div>";
       }
-    }).catch((error) => {
-      console.error(error);
-      document.getElementById('classes-list').innerHTML = "<div class='no-classes'>❌ Error loading database. Check console.</div>";
+    }).catch((e) => {
+      document.getElementById('classes-list').innerHTML = "<div class='no-classes'>❌ Engine connection crash. check token.</div>";
     });
 
-    // 3. Main tracking loop logic
     function updateDashboard(schedule) {
       const now = new Date();
       
-      // Update the digital clock header
-      const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
-      document.getElementById('current-time').innerText = now.toLocaleTimeString([], timeOptions);
-
-      // Identify the current day name
+      // Render system date/time configurations
+      document.getElementById('current-time').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const currentDay = days[now.getDay()];
-      document.getElementById('current-day').innerText = `Today is ${currentDay}`;
+      document.getElementById('current-day').innerText = currentDay;
 
-      // Convert current clock time to "HH:MM" string format for straight mathematical comparisons
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
-      const currentTimeString = `${hours}:${minutes}`; 
+      const currentTimeString = `${hours}:${minutes}`;
 
       const todaysClasses = schedule[currentDay];
       const listContainer = document.getElementById('classes-list');
-      listContainer.innerHTML = ''; // Fresh render loop frame
+      listContainer.innerHTML = '';
 
-      // Weekend or day off fallback
-      if (!todaysClasses) {
-        listContainer.innerHTML = "<div class='no-classes'>No classes scheduled today! Enjoy your day. 😎</div>";
+      if (!todaysClasses || Object.keys(todaysClasses).length === 0) {
+        listContainer.innerHTML = "<div class='no-classes'>No classes today. Rest up! 🌴</div>";
         return;
       }
 
-      // Cycle through each period row
-      Object.keys(todaysClasses).forEach(periodKey => {
-        const item = todaysClasses[periodKey];
-        const classElement = document.createElement('div');
-        classElement.className = 'class-card';
+      // Loop through the daily layout explicitly tracking spell keys
+      Object.keys(todaysClasses).forEach(key => {
+        const item = todaysClasses[key];
+        const card = document.createElement('div');
+        card.className = 'class-card';
 
-        // Check time boundaries
+        const classStartMinutes = parseTimeToMinutes(item.start);
+        const classEndMinutes = parseTimeToMinutes(item.end);
+        const currentMinutes = (now.getHours() * 60) + now.getMinutes();
+
         if (currentTimeString >= item.start && currentTimeString <= item.end) {
-          // In Class Now
-          classElement.classList.add('active-class');
-          classElement.innerHTML = `
-            <div class="active-status">🚨 In Progress</div>
+          // Inside Spell
+          const remaining = classEndMinutes - currentMinutes;
+          card.classList.add('active-class');
+          card.innerHTML = `
+            <div class="status-badge">🚨 Now</div>
             <div class="class-title">${item.name}</div>
-            <div class="class-time">${item.start} - ${item.end}</div>
+            <div class="class-time">${format12Hour(item.start)} - ${format12Hour(item.end)}</div>
+            <div class="countdown">Ends in ${remaining} min${remaining > 1 ? 's' : ''}</div>
           `;
         } else if (currentTimeString > item.end) {
-          // Class is over
-          classElement.classList.add('past-class');
-          classElement.innerHTML = `
-            <div class="class-title"><strike>${item.name}</strike></div>
+          // Ended Spell
+          card.classList.add('past-class');
+          card.innerHTML = `
+            <div class="class-title">${item.name}</div>
             <div class="class-time">Finished</div>
           `;
         } else {
-          // Class is upcoming later today
-          classElement.classList.add('upcoming-class');
-          classElement.innerHTML = `
+          // Upcoming Spell
+          const untilStart = classStartMinutes - currentMinutes;
+          let countdownText = `Starts in ${untilStart} min${untilStart > 1 ? 's' : ''}`;
+          if (untilStart > 60) {
+            const h = Math.floor(untilStart / 60);
+            const m = untilStart % 60;
+            countdownText = `Starts in ${h}h ${m}m`;
+          }
+
+          card.classList.add('upcoming-class');
+          card.innerHTML = `
+            <div class="status-badge">Up Next</div>
             <div class="class-title">${item.name}</div>
-            <div class="class-time">Starts at ${item.start}</div>
+            <div class="class-time">Starts at ${format12Hour(item.start)}</div>
+            <div class="countdown">${countdownText}</div>
           `;
         }
-
-        listContainer.appendChild(classElement);
+        listContainer.appendChild(card);
       });
+    }
+
+    function parseTimeToMinutes(timeStr) {
+      const [h, m] = timeStr.split(':').map(Number);
+      return (h * 60) + m;
+    }
+
+    function format12Hour(timeStr) {
+      const [h, m] = timeStr.split(':');
+      let hour = parseInt(h);
+      const ampm = hour >= 12 ? 'pm' : 'am';
+      hour = hour % 12 || 12;
+      return `${hour}:${m}${ampm}`;
     }
   </script>
 </body>
