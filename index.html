@@ -148,16 +148,10 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
     import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
 
-    // SWAP THIS OUT WITH YOUR REAL DB URL:
-const firebaseConfig = {
-  apiKey: "AIzaSyA1cOfZneI_ss-QmQCkZostIQngpQ_JbtE",
-  authDomain: "to-do-list-2fbf9.firebaseapp.com",
-  databaseURL: "https://to-do-list-2fbf9-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "to-do-list-2fbf9",
-  storageBucket: "to-do-list-2fbf9.firebasestorage.app",
-  messagingSenderId: "712067178045",
-  appId: "1:712067178045:web:e4091b51ce4b8fb1d69454"
-};
+    // REMEMBER TO PASTE YOUR REAL FIREBASE DATABASE URL HERE:
+    const firebaseConfig = {
+      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com/"
+    };
 
     const app = initializeApp(firebaseConfig);
     const database = getDatabase(app);
@@ -170,10 +164,10 @@ const firebaseConfig = {
         updateDashboard(fullSchedule);
         setInterval(() => updateDashboard(fullSchedule), 1000);
       } else {
-        document.getElementById('classes-list').innerHTML = "<div class='no-classes'>❌ No database data match structure rules.</div>";
+        document.getElementById('classes-list').innerHTML = "<div class='no-classes'>❌ No database data found.</div>";
       }
     }).catch((e) => {
-      document.getElementById('classes-list').innerHTML = "<div class='no-classes'>❌ Engine connection crash.</div>";
+      document.getElementById('classes-list').innerHTML = "<div class='no-classes'>❌ Connection error.</div>";
     });
 
     function updateDashboard(schedule) {
@@ -197,12 +191,16 @@ const firebaseConfig = {
         return;
       }
 
-      Object.keys(todaysClasses).forEach(key => {
-        const item = todaysClasses[key];
+      // --- THE FIX: Convert object into an array and sort by start time ---
+      const sortedClasses = Object.values(todaysClasses).sort((a, b) => {
+        return padTimeStr(a.start).localeCompare(padTimeStr(b.start));
+      });
+
+      // Loop through our freshly sorted array instead of the raw database object
+      sortedClasses.forEach(item => {
         const card = document.createElement('div');
         card.className = 'class-card';
 
-        // Normalize time variables ensuring 24h safety strings (e.g. "9:55" -> "09:55")
         const safeStart = padTimeStr(item.start);
         const safeEnd = padTimeStr(item.end);
 
@@ -210,7 +208,6 @@ const firebaseConfig = {
         const classEndMinutes = parseTimeToMinutes(safeEnd);
         const currentMinutes = (now.getHours() * 60) + now.getMinutes();
 
-        // Optional UI room location text engine values
         const roomBadge = item.room ? `<div class="class-room">${item.room}</div>` : '';
 
         if (currentTimeString >= safeStart && currentTimeString <= safeEnd) {
@@ -252,7 +249,6 @@ const firebaseConfig = {
       });
     }
 
-    // Helper to safely pad string times ensuring mathematical comparison sorting bounds
     function padTimeStr(str) {
       const [h, m] = str.split(':');
       return `${h.padStart(2, '0')}:${m}`;
