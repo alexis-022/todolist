@@ -370,20 +370,18 @@
       document.getElementById('classes-list').innerHTML = "<div class='no-classes'>Database connection failure.</div>";
     });
 
-    // Color Parser Engine helper
     function getSubjectColor(subjectName) {
       if (!subjectName) return '#66fcf1';
       const name = subjectName.toLowerCase();
       
-      if (name.includes('calc') || name.includes('math')) return '#98ff98'; // Light Green
-      if (name.includes('phys')) return '#3a86ff'; // Blue
-      if (name.includes('econ')) return '#800020'; // Maroon
-      if (name.includes('hist')) return '#ffbe0b'; // Yellow
-      if (name.includes('engl') || name.includes('lit')) return '#ffffff'; // White
+      if (name.includes('calc') || name.includes('math')) return '#98ff98'; 
+      if (name.includes('phys')) return '#3a86ff'; 
+      if (name.includes('econ')) return '#800020'; 
+      if (name.includes('hist')) return '#ffbe0b'; 
+      if (name.includes('engl') || name.includes('lit')) return '#ffffff'; 
       
-      // Fallbacks for generic non-subject breaks or other blocks
       if (name.includes('lunch') || name.includes('interval') || name.includes('break')) return '#ffb703'; 
-      return '#66fcf1'; // Teal Default
+      return '#66fcf1'; 
     }
 
     function updateDashboard(schedule) {
@@ -472,11 +470,10 @@
         }
       });
 
-      if (!activeItem && upcomingStack.length > 0) {
-        activeItem = { ...upcomingStack.shift(), type: 'NEXT' };
-      }
+      // FIX: If no class is running right now, do NOT inject it into activeItem.
+      // Leave activeItem null so it falls cleanly through to the upcoming rendering queue.
 
-      // Render Historical Elements
+      // Render Historical Elements (2-hour limit)
       pastStack.forEach(item => {
         const card = document.createElement('div');
         const color = getSubjectColor(item.name);
@@ -493,6 +490,7 @@
       let activeCardElement = null;
       let renderCanvasCallback = null;
 
+      // Handle running Hero Class
       if (activeItem) {
         const card = document.createElement('div');
         card.className = 'class-card active-class';
@@ -508,79 +506,55 @@
 
         if (lowerName.includes('lunch') || lowerName.includes('interval') || lowerName.includes('break')) {
           labelText = "Break Period";
-        } else if (lowerName.includes('duty') || lowerName.includes('club') || lowerName.includes('event')) {
-          labelText = "Activity Slot";
         }
 
-        if (activeItem.type === 'ACTIVE') {
-          const startMin = parseTimeToMinutes(safeStart);
-          const endMin = parseTimeToMinutes(safeEnd);
-          const remaining = endMin - currentMinutes;
+        const startMin = parseTimeToMinutes(safeStart);
+        const endMin = parseTimeToMinutes(safeEnd);
+        const remaining = endMin - currentMinutes;
+        
+        const totalDuration = endMin - startMin;
+        const elapsed = currentMinutes - startMin;
+        const progressPercent = Math.min(Math.max(elapsed / totalDuration, 0), 1);
+
+        card.innerHTML = `
+          <div class="active-header-row">
+            <div class="status-badge">${labelText}</div>
+            <canvas id="active-progress-ring" class="canvas-ring-inline" width="32" height="32"></canvas>
+          </div>
+          <div class="class-title">${activeItem.name}</div>
+          <div class="class-time">${format12Hour(safeStart)} - ${format12Hour(safeEnd)}</div>
+          ${activeItem.room ? `<div class="class-room">${activeItem.room}</div>` : ''}
+          <div class="countdown">Ends in ${remaining} min${remaining > 1 ? 's' : ''}</div>
+        `;
+
+        renderCanvasCallback = () => {
+          const canvas = document.getElementById('active-progress-ring');
+          if (!canvas) return;
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, 32, 32);
           
-          const totalDuration = endMin - startMin;
-          const elapsed = currentMinutes - startMin;
-          const progressPercent = Math.min(Math.max(elapsed / totalDuration, 0), 1);
+          ctx.beginPath();
+          ctx.arc(16, 16, 13, 0, 2 * Math.PI);
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+          ctx.lineWidth = 3;
+          ctx.stroke();
 
-          card.innerHTML = `
-            <div class="active-header-row">
-              <div class="status-badge">${labelText}</div>
-              <canvas id="active-progress-ring" class="canvas-ring-inline" width="32" height="32"></canvas>
-            </div>
-            <div class="class-title">${activeItem.name}</div>
-            <div class="class-time">${format12Hour(safeStart)} - ${format12Hour(safeEnd)}</div>
-            ${activeItem.room ? `<div class="class-room">${activeItem.room}</div>` : ''}
-            <div class="countdown">Ends in ${remaining} min${remaining > 1 ? 's' : ''}</div>
-          `;
+          ctx.beginPath();
+          ctx.arc(16, 16, 13, -0.5 * Math.PI, (-0.5 * Math.PI) + (2 * Math.PI * progressPercent));
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 3;
+          ctx.lineCap = 'round';
+          ctx.stroke();
+        };
 
-          renderCanvasCallback = () => {
-            const canvas = document.getElementById('active-progress-ring');
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, 32, 32);
-            
-            ctx.beginPath();
-            ctx.arc(16, 16, 13, 0, 2 * Math.PI);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(16, 16, 13, -0.5 * Math.PI, (-0.5 * Math.PI) + (2 * Math.PI * progressPercent));
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 3;
-            ctx.lineCap = 'round';
-            ctx.stroke();
-          };
-
-        } else {
-          let countdownText = '';
-          if (lookaheadNote.style.display === 'none') {
-            const untilStart = parseTimeToMinutes(safeStart) - currentMinutes;
-            countdownText = `Starts in ${untilStart} min${untilStart > 1 ? 's' : ''}`;
-            if (untilStart > 60) {
-              countdownText = `Starts in ${Math.floor(untilStart / 60)}h ${untilStart % 60}m`;
-            }
-            countdownText = `<div class="countdown">${countdownText}</div>`;
-          }
-
-          card.innerHTML = `
-            <div class="status-badge">Up Next Focus</div>
-            <div class="class-title">${activeItem.name}</div>
-            <div class="class-time">Starts at ${format12Hour(safeStart)}</div>
-            ${activeItem.room ? `<div class="class-room">${activeItem.room}</div>` : ''}
-            ${countdownText}
-          `;
-        }
         listContainer.appendChild(card);
         if (renderCanvasCallback) renderCanvasCallback();
       }
 
-      // Render Trailing Future Cards
-      upcomingStack.forEach(item => {
+      // Render Trailing Future Cards / "Up Next Focus" if inside a gap window
+      upcomingStack.forEach((item, index) => {
         const card = document.createElement('div');
         const color = getSubjectColor(item.name);
-        card.className = 'class-card upcoming-class';
-        card.style.setProperty('--subject-color', color);
         const safeStart = padTimeStr(item.start);
         const roomBadge = item.room ? `<div class="class-room">${item.room}</div>` : '';
         
@@ -594,13 +568,29 @@
           countdownElementText = `<div class="countdown">In ${countdownText}</div>`;
         }
 
-        card.innerHTML = `
-          <div class="status-badge">Upcoming</div>
-          <div class="class-title">${item.name}</div>
-          <div class="class-time">Starts at ${format12Hour(safeStart)}</div>
-          ${roomBadge}
-          ${countdownElementText}
-        `;
+        // FIX: The first upcoming item explicitly marks itself as "Up Next Focus" during a gap
+        if (!activeItem && index === 0) {
+          card.className = 'class-card active-class'; // Kept highlighted for layout flow
+          card.style.setProperty('--subject-color', color);
+          card.innerHTML = `
+            <div class="status-badge">Up Next Focus</div>
+            <div class="class-title">${item.name}</div>
+            <div class="class-time">Starts at ${format12Hour(safeStart)}</div>
+            ${item.room ? `<div class="class-room">${item.room}</div>` : ''}
+            ${countdownElementText}
+          `;
+          activeCardElement = card; // Scroll anchors target this safely
+        } else {
+          card.className = 'class-card upcoming-class';
+          card.style.setProperty('--subject-color', color);
+          card.innerHTML = `
+            <div class="status-badge">Upcoming</div>
+            <div class="class-title">${item.name}</div>
+            <div class="class-time">Starts at ${format12Hour(safeStart)}</div>
+            ${roomBadge}
+            ${countdownElementText}
+          `;
+        }
         listContainer.appendChild(card);
       });
 
@@ -619,7 +609,6 @@
 
       orderOfDays.forEach(day => {
         const dayData = schedule[day];
-        
         if ((day === 'Saturday' || day === 'Sunday') && (!dayData || Object.keys(dayData).length === 0)) {
           return;
         }
