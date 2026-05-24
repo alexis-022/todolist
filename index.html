@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>School Dashboard</title>
+  <title>Personal Dashboard</title>
   
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2366fcf1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E">
 
@@ -32,16 +32,33 @@
       background-color: var(--bg-color);
       color: var(--text-main);
       margin: 0;
-      padding: 15px;
+      padding: 30px 15px;
       display: flex;
       justify-content: center;
-      align-items: center;
+      align-items: flex-start;
       min-height: 100vh;
+      box-sizing: border-box;
     }
 
-    #timetable-container {
+    /* Master Dashboard Workspace Grid Wrapper */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: minmax(320px, 440px) minmax(320px, 440px);
+      gap: 30px;
       width: 100%;
-      max-width: 440px;
+      max-width: 940px;
+      justify-content: center;
+    }
+
+    @media (max-width: 820px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+        max-width: 440px;
+      }
+    }
+
+    /* Individual Container Blueprint Blocks */
+    .dashboard-panel {
       background: var(--card-bg);
       padding: 25px;
       border-radius: 24px;
@@ -49,6 +66,7 @@
       display: flex;
       flex-direction: column;
       box-sizing: border-box;
+      width: 100%;
     }
 
     .header-section {
@@ -80,29 +98,6 @@
       font-weight: bold;
     }
 
-    /* RSS News Ticker Styles */
-    #rss-news-ticker {
-      margin-top: 8px;
-      font-size: 0.8rem;
-      color: var(--text-main);
-      height: 18px;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      transition: opacity 0.5s ease-in-out;
-      opacity: 0.8;
-      border-top: 1px dashed rgba(255, 255, 255, 0.05);
-      padding-top: 8px;
-    }
-    #rss-news-ticker a {
-      color: var(--text-main);
-      text-decoration: none;
-      font-style: italic;
-    }
-    #rss-news-ticker a:hover {
-      color: var(--upcoming-accent);
-    }
-
     #classes-list {
       display: flex;
       flex-direction: column;
@@ -113,10 +108,10 @@
       box-sizing: border-box;
     }
 
-    #classes-list::-webkit-scrollbar {
+    #classes-list::-webkit-scrollbar, .news-feed-wrapper::-webkit-scrollbar {
       width: 4px;
     }
-    #classes-list::-webkit-scrollbar-thumb {
+    #classes-list::-webkit-scrollbar-thumb, .news-feed-wrapper::-webkit-scrollbar-thumb {
       background: rgba(255, 255, 255, 0.1);
       border-radius: 2px;
     }
@@ -139,14 +134,8 @@
       padding: 10px 14px;
       font-size: 0.95rem;
     }
-    .past-class .class-title {
-      font-size: 1rem;
-      font-weight: 500;
-    }
-    .past-class .class-room {
-      top: 10px;
-      font-size: 0.7rem;
-    }
+    .past-class .class-title { font-size: 1rem; font-weight: 500; }
+    .past-class .class-room { top: 10px; font-size: 0.7rem; }
 
     /* ACTIVE HERO CLASS */
     .active-class {
@@ -167,7 +156,6 @@
       margin-top: 4px;
     }
 
-    /* Header line containing badge and the inline progress ring */
     .active-header-row {
       display: flex;
       align-items: center;
@@ -180,10 +168,7 @@
       display: block;
     }
 
-    /* UPCOMING CLASSES */
-    .upcoming-class {
-      border-left-color: var(--subject-color);
-    }
+    .upcoming-class { border-left-color: var(--subject-color); }
 
     .status-badge {
       font-weight: 800;
@@ -228,14 +213,13 @@
       font-weight: 500;
     }
 
-    .no-classes {
+    .no-classes, .news-status-message {
       text-align: center;
       padding: 40px 20px;
       color: var(--text-main);
       font-size: 1.1rem;
     }
 
-    /* WEEK VIEW TRIGGER BUTTON */
     .week-btn {
       margin-top: 25px;
       background: transparent;
@@ -248,8 +232,62 @@
       transition: all 0.2s ease;
       font-size: 0.95rem;
     }
-    .week-btn:hover {
-      background: rgba(102, 252, 241, 0.1);
+    .week-btn:hover { background: rgba(102, 252, 241, 0.1); }
+
+    /* --- STUFF NEWS HUB EXTRA STYLING --- */
+    .news-feed-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-height: 70vh;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .news-article-card {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: transform 0.2s ease, border-color 0.2s ease;
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .news-article-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--upcoming-accent);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .news-image-header {
+      width: 100%;
+      height: 140px;
+      background-size: cover;
+      background-position: center;
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .news-card-body {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .news-card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      line-height: 1.4;
+    }
+
+    .news-card-date {
+      font-size: 0.75rem;
+      color: var(--upcoming-accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     /* FULL WEEK MODAL OVERLAY */
@@ -337,17 +375,31 @@
 </head>
 <body>
 
-  <div id="timetable-container">
-    <div class="header-section">
-      <div id="lookahead-note">Tomorrow's Schedule Preview</div>
-      <h2 id="current-day">Syncing...</h2>
-      <div id="current-time">00:00:00</div>
-      <div id="rss-news-ticker">Loading top news stories...</div>
+  <div class="dashboard-grid">
+    
+    <div class="dashboard-panel">
+      <div class="header-section">
+        <div id="lookahead-note">Tomorrow's Schedule Preview</div>
+        <h2 id="current-day">Syncing...</h2>
+        <div id="current-time">00:00:00</div>
+      </div>
+      <div id="classes-list">
+        <div class="no-classes">Connecting to Realtime Hub...</div>
+      </div>
+      <button class="week-btn" id="open-week-btn">View Full Week Timetable</button>
     </div>
-    <div id="classes-list">
-      <div class="no-classes">Connecting to Realtime Hub...</div>
+
+    <div class="dashboard-panel">
+      <div class="header-section">
+        <div style="font-size: 0.85rem; color: var(--upcoming-accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">Live RSS Central</div>
+        <h2>Stuff News Feed</h2>
+        <div style="font-size: 0.9rem; opacity: 0.6; font-style: italic;">Top 3 Stories</div>
+      </div>
+      <div class="news-feed-wrapper" id="news-injection-point">
+        <div class="news-status-message">Fetching headlines from Stuff...</div>
+      </div>
     </div>
-    <button class="week-btn" id="open-week-btn">View Full Week Timetable</button>
+
   </div>
 
   <div class="modal-overlay" id="week-modal">
@@ -395,52 +447,71 @@
       document.getElementById('classes-list').innerHTML = "<div class='no-classes'>Database connection failure.</div>";
     });
 
-    // --- RSS FEED INTEGRATION CODE ---
-    // You can swap out this URL string for any feed you prefer (BBC, NYT, TechCrunch, etc.)
-    const RSS_FEED_URL = "https://feeds.bbci.co.uk/news/rss.xml"; 
-    let newsStories = [];
-    let currentStoryIndex = 0;
+    // --- STUFF RSS ENGINE PROCESSOR ---
+    const STUFF_RSS_URL = "https://www.stuff.co.nz/rss";
 
-    function fetchRSSFeed() {
-      const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_FEED_URL)}`;
+    function fetchStuffNews() {
+      const targetContainer = document.getElementById('news-injection-point');
+      const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(STUFF_RSS_URL)}`;
+
       fetch(proxyUrl)
         .then(res => res.json())
         .then(data => {
-          if (data && data.items) {
-            // Keep the top 5 clean story titles
-            newsStories = data.items.slice(0, 5).map(item => ({
-              title: item.title,
-              link: item.link
-            }));
-            cycleNewsStories();
+          if (data && data.items && data.items.length > 0) {
+            targetContainer.innerHTML = '';
+            
+            // Slice down strictly to the top 3 items
+            const topThree = data.items.slice(0, 3);
+
+            topThree.forEach(item => {
+              // Extract preview thumbnail image links if wrapped in code description keys
+              let fallbackThumbnail = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%23333" stroke-width="1"%3E%3Crect width="24" height="24" fill="%23131922"/%3E%3Cpath d="M21 12H3"/%3E%3C/svg%3E';
+              
+              if (item.thumbnail) {
+                fallbackThumbnail = item.thumbnail;
+              } else if (item.enclosure && item.enclosure.link) {
+                fallbackThumbnail = item.enclosure.link;
+              } else if (item.description) {
+                // Regular Expression parsing backup fallback captures structural image tags from source
+                const imgMatch = item.description.match(/<img[^>]+src="([^">]+)"/);
+                if (imgMatch && imgMatch[1]) fallbackThumbnail = imgMatch[1];
+              }
+
+              // Build interactive article item cards
+              const articleLink = document.createElement('a');
+              articleLink.className = 'news-article-card';
+              articleLink.href = item.link;
+              articleLink.target = '_blank';
+
+              // Format date cleanly
+              let formattedDate = "Recently";
+              if(item.pubDate) {
+                const dateObj = new Date(item.pubDate);
+                formattedDate = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+              }
+
+              articleLink.innerHTML = `
+                <div class="news-image-header" style="background-image: url('${fallbackThumbnail}');"></div>
+                <div class="news-card-body">
+                  <div class="news-card-date">🕒 ${formattedDate}</div>
+                  <div class="news-card-title">${item.title}</div>
+                </div>
+              `;
+              targetContainer.appendChild(articleLink);
+            });
+          } else {
+            targetContainer.innerHTML = "<div class='news-status-message'>No current articles available.</div>";
           }
         })
         .catch(err => {
-          console.error("RSS Fetch Failed:", err);
-          document.getElementById('rss-news-ticker').innerText = "News feed offline";
+          console.error(err);
+          targetContainer.innerHTML = "<div class='news-status-message'>Failed to refresh Stuff headlines.</div>";
         });
     }
 
-    function cycleNewsStories() {
-      if (newsStories.length === 0) return;
-      const ticker = document.getElementById('rss-news-ticker');
-      
-      // Smooth fade out layout transition
-      ticker.style.opacity = 0;
-      
-      setTimeout(() => {
-        const story = newsStories[currentStoryIndex];
-        ticker.innerHTML = `<a href="${story.link}" target="_blank" title="Click to read full article">⚡ News: ${story.title}</a>`;
-        ticker.style.opacity = 0.8;
-        
-        currentStoryIndex = (currentStoryIndex + 1) % newsStories.length;
-      }, 500);
-    }
-
-    // Initialize RSS engine and refresh feed data every 10 minutes
-    fetchRSSFeed();
-    setInterval(cycleNewsStories, 15000); // Rotate headline every 15 seconds
-    setInterval(fetchRSSFeed, 600000);   // Sync API content every 10 minutes
+    // Trigger News Sync on Initialization and clock it to update every 10 minutes
+    fetchStuffNews();
+    setInterval(fetchStuffNews, 600000);
 
     function getSubjectColor(subjectName) {
       if (!subjectName) return '#66fcf1';
@@ -619,7 +690,7 @@
         if (renderCanvasCallback) renderCanvasCallback();
       }
 
-      // Render Trailing Future Cards / "Up Next Focus" if inside a gap window
+      // Render Trailing Future Cards
       upcomingStack.forEach((item, index) => {
         const card = document.createElement('div');
         const color = getSubjectColor(item.name);
