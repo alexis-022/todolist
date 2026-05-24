@@ -80,6 +80,29 @@
       font-weight: bold;
     }
 
+    /* RSS News Ticker Styles */
+    #rss-news-ticker {
+      margin-top: 8px;
+      font-size: 0.8rem;
+      color: var(--text-main);
+      height: 18px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      transition: opacity 0.5s ease-in-out;
+      opacity: 0.8;
+      border-top: 1px dashed rgba(255, 255, 255, 0.05);
+      padding-top: 8px;
+    }
+    #rss-news-ticker a {
+      color: var(--text-main);
+      text-decoration: none;
+      font-style: italic;
+    }
+    #rss-news-ticker a:hover {
+      color: var(--upcoming-accent);
+    }
+
     #classes-list {
       display: flex;
       flex-direction: column;
@@ -229,7 +252,7 @@
       background: rgba(102, 252, 241, 0.1);
     }
 
-    /* FULL WEEK MODAL OVERLAY - Layout Clipping Fixed */
+    /* FULL WEEK MODAL OVERLAY */
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -240,7 +263,7 @@
       backdrop-filter: blur(8px);
       z-index: 100;
       display: none;
-      justify-content: flex-start; /* Switch to flex start layout to safe-keep horizontal overflow */
+      justify-content: flex-start;
       align-items: flex-start;
       overflow: auto; 
       padding: 40px 20px;
@@ -255,7 +278,7 @@
       box-shadow: 0 20px 50px rgba(0,0,0,0.8);
       position: relative;
       box-sizing: border-box;
-      margin: 0 auto; /* Handles standard modern centering safety across views */
+      margin: 0 auto;
     }
     .close-btn {
       position: absolute;
@@ -319,6 +342,7 @@
       <div id="lookahead-note">Tomorrow's Schedule Preview</div>
       <h2 id="current-day">Syncing...</h2>
       <div id="current-time">00:00:00</div>
+      <div id="rss-news-ticker">Loading top news stories...</div>
     </div>
     <div id="classes-list">
       <div class="no-classes">Connecting to Realtime Hub...</div>
@@ -353,7 +377,7 @@
     const database = getDatabase(app);
 
     let globalScheduleCache = null;
-    let hasInitiallyAnchored = false; // Flag counter prevents bouncing scrolls
+    let hasInitiallyAnchored = false; 
 
     const timetableRef = ref(database, 'timetable');
     get(timetableRef).then((snapshot) => {
@@ -370,6 +394,53 @@
       console.error(e);
       document.getElementById('classes-list').innerHTML = "<div class='no-classes'>Database connection failure.</div>";
     });
+
+    // --- RSS FEED INTEGRATION CODE ---
+    // You can swap out this URL string for any feed you prefer (BBC, NYT, TechCrunch, etc.)
+    const RSS_FEED_URL = "https://feeds.bbci.co.uk/news/rss.xml"; 
+    let newsStories = [];
+    let currentStoryIndex = 0;
+
+    function fetchRSSFeed() {
+      const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_FEED_URL)}`;
+      fetch(proxyUrl)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.items) {
+            // Keep the top 5 clean story titles
+            newsStories = data.items.slice(0, 5).map(item => ({
+              title: item.title,
+              link: item.link
+            }));
+            cycleNewsStories();
+          }
+        })
+        .catch(err => {
+          console.error("RSS Fetch Failed:", err);
+          document.getElementById('rss-news-ticker').innerText = "News feed offline";
+        });
+    }
+
+    function cycleNewsStories() {
+      if (newsStories.length === 0) return;
+      const ticker = document.getElementById('rss-news-ticker');
+      
+      // Smooth fade out layout transition
+      ticker.style.opacity = 0;
+      
+      setTimeout(() => {
+        const story = newsStories[currentStoryIndex];
+        ticker.innerHTML = `<a href="${story.link}" target="_blank" title="Click to read full article">⚡ News: ${story.title}</a>`;
+        ticker.style.opacity = 0.8;
+        
+        currentStoryIndex = (currentStoryIndex + 1) % newsStories.length;
+      }, 500);
+    }
+
+    // Initialize RSS engine and refresh feed data every 10 minutes
+    fetchRSSFeed();
+    setInterval(cycleNewsStories, 15000); // Rotate headline every 15 seconds
+    setInterval(fetchRSSFeed, 600000);   // Sync API content every 10 minutes
 
     function getSubjectColor(subjectName) {
       if (!subjectName) return '#66fcf1';
@@ -590,7 +661,6 @@
         listContainer.appendChild(card);
       });
 
-      // SCROLL FIX: Only focus scroll anchors once on boot loader sequences
       if (activeCardElement && !hasInitiallyAnchored) {
         setTimeout(() => {
           activeCardElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
