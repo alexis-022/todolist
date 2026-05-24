@@ -108,10 +108,10 @@
       box-sizing: border-box;
     }
 
-    #classes-list::-webkit-scrollbar, .news-feed-wrapper::-webkit-scrollbar {
+    #classes-list::-webkit-scrollbar {
       width: 4px;
     }
-    #classes-list::-webkit-scrollbar-thumb, .news-feed-wrapper::-webkit-scrollbar-thumb {
+    #classes-list::-webkit-scrollbar-thumb {
       background: rgba(255, 255, 255, 0.1);
       border-radius: 2px;
     }
@@ -213,7 +213,7 @@
       font-weight: 500;
     }
 
-    .no-classes, .news-status-message {
+    .no-classes, .weather-status-message {
       text-align: center;
       padding: 40px 20px;
       color: var(--text-main);
@@ -234,60 +234,96 @@
     }
     .week-btn:hover { background: rgba(102, 252, 241, 0.1); }
 
-    /* --- STUFF NEWS HUB BLUEPRINT --- */
-    .news-feed-wrapper {
+    /* --- WEATHER HUB STYLES --- */
+    .weather-container {
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      max-height: 70vh;
-      overflow-y: auto;
-      padding-right: 4px;
+      gap: 20px;
     }
 
-    .news-article-card {
+    .weather-main-display {
       background: rgba(255, 255, 255, 0.02);
-      border-radius: 16px;
-      overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.05);
-      transition: transform 0.2s ease, border-color 0.2s ease;
-      text-decoration: none;
+      border-radius: 18px;
+      padding: 20px;
+      text-align: center;
       display: flex;
       flex-direction: column;
+      align-items: center;
+      gap: 8px;
     }
 
-    .news-article-card:hover {
-      transform: translateY(-2px);
-      border-color: var(--upcoming-accent);
-      background: rgba(255, 255, 255, 0.04);
-    }
-
-    .news-image-header {
-      width: 100%;
-      height: 150px;
-      background-size: cover;
-      background-position: center;
-      background-color: rgba(255, 255, 255, 0.05);
-    }
-
-    .news-card-body {
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .news-card-title {
-      font-size: 1rem;
-      font-weight: 700;
+    .weather-temp {
+      font-size: 3.5rem;
+      font-weight: 800;
       color: var(--text-bright);
-      line-height: 1.4;
+      line-height: 1;
     }
 
-    .news-card-date {
-      font-size: 0.75rem;
+    .weather-condition {
+      font-size: 1.2rem;
       color: var(--upcoming-accent);
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+    }
+
+    .weather-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .weather-meta-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      padding: 14px;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .weather-meta-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-main);
+      opacity: 0.7;
+    }
+
+    .weather-meta-val {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-bright);
+    }
+
+    .forecast-row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .forecast-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.01);
+      padding: 12px 16px;
+      border-radius: 12px;
+      border-left: 4px solid var(--upcoming-accent);
+    }
+
+    .forecast-day {
+      font-weight: 600;
+      color: var(--text-bright);
+    }
+
+    .forecast-meta {
+      font-size: 0.9rem;
+      color: var(--text-main);
+      text-align: right;
     }
 
     /* FULL WEEK MODAL OVERLAY */
@@ -372,8 +408,6 @@
     .mini-title { font-weight: bold; color: var(--text-bright); margin-bottom: 2px; word-wrap: break-word;}
     .mini-meta { color: #888; font-size: 0.75rem; }
   </style>
-
-  <script src="https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/feednami/feednami-client.v1.1.js"></script>
 </head>
 <body>
 
@@ -393,12 +427,13 @@
 
     <div class="dashboard-panel">
       <div class="header-section">
-        <div style="font-size: 0.85rem; color: var(--upcoming-accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">Live RSS Central</div>
-        <h2>Stuff News Feed</h2>
-        <div style="font-size: 0.9rem; opacity: 0.6; font-style: italic;">Top 3 Stories</div>
+        <div style="font-size: 0.85rem; color: var(--upcoming-accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">Environment Metrics</div>
+        <h2>Local Weather</h2>
+        <div style="font-size: 0.9rem; opacity: 0.6; font-style: italic;" id="weather-location-label">Wellington Region</div>
       </div>
-      <div class="news-feed-wrapper" id="news-injection-point">
-        <div class="news-status-message">Fetching headlines from Stuff...</div>
+      
+      <div id="weather-injection-point">
+        <div class="weather-status-message">Connecting to Open-Meteo satellite grid...</div>
       </div>
     </div>
 
@@ -449,88 +484,112 @@
       document.getElementById('classes-list').innerHTML = "<div class='no-classes'>Database connection failure.</div>";
     });
 
-    // --- HIGH-AVAILABILITY CORS HANDSHAKE NEWS ENGINE ---
-    window.fetchStuffNews = function() {
-      const targetContainer = document.getElementById('news-injection-point');
-      const nativeFeedUrl = "https://www.stuff.co.nz/rss";
-
-      // feednami handles CORS headers dynamically on modern host providers
-      feednami.load(nativeFeedUrl, function(result){
-        if (result.error) {
-          console.error(result.error);
-          // Fallback to secure direct fetch if provider drops connection
-          fetch(`https://api.feedpond.io/v1/feed?url=${encodeURIComponent(nativeFeedUrl)}`)
-            .then(res => res.json())
-            .then(resData => renderArticlesArray(resData.entries || resData.items))
-            .catch(() => {
-               if (!targetContainer.querySelector('.news-article-card')) {
-                 targetContainer.innerHTML = "<div class='news-status-message'>Re-establishing news stream connection...</div>";
-               }
-            });
-        } else {
-          renderArticlesArray(result.feed.entries);
-        }
-      });
-    };
-
-    function renderArticlesArray(entries) {
-      const targetContainer = document.getElementById('news-injection-point');
-      if (entries && entries.length > 0) {
-        targetContainer.innerHTML = '';
-        
-        // Pick exactly the first 3 most recent entries in the XML timeline array
-        const limit = Math.min(entries.length, 3);
-
-        for (let i = 0; i < limit; i++) {
-          const entry = entries[i];
-          
-          const title = entry.title || "Untitled Story";
-          const link = entry.link || "#";
-          const dateValue = entry.pubDate || entry.date || "";
-          const description = entry.description || entry.summary || "";
-          
-          let imgUrl = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%23333" stroke-width="1"%3E%3Crect width="24" height="24" fill="%23131922"/%3E%3Cline x1="3" y1="21" x2="21" y2="3" /%3E%3C/svg%3E';
-          
-          // Thorough check across different naming conventions used by RSS parsers
-          if (entry.enclosures && entry.enclosures.length > 0 && entry.enclosures[0].url) {
-            imgUrl = entry.enclosures[0].url;
-          } else if (entry.image && entry.image.url) {
-            imgUrl = entry.image.url;
-          } else if (entry.media && entry.media.url) {
-            imgUrl = entry.media.url;
-          } else {
-            const imgMatch = description.match(/<img[^>]+src="([^">]+)"/);
-            if (imgMatch && imgMatch[1]) imgUrl = imgMatch[1];
-          }
-
-          let displayDate = "Recently";
-          if (dateValue) {
-            const dateObj = new Date(dateValue);
-            displayDate = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-          }
-
-          const articleLink = document.createElement('a');
-          articleLink.className = 'news-article-card';
-          articleLink.href = link;
-          articleLink.target = '_blank';
-
-          articleLink.innerHTML = `
-            <div class="news-image-header" style="background-image: url('${imgUrl}');"></div>
-            <div class="news-card-body">
-              <div class="news-card-date">News: ${displayDate}</div>
-              <div class="news-card-title">${title}</div>
-            </div>
-          `;
-          targetContainer.appendChild(articleLink);
-        }
-      } else {
-        targetContainer.innerHTML = "<div class='news-status-message'>No current articles found.</div>";
-      }
+    // --- CODESET MAPPER FOR WEATHER CONDITIONAL STRINGS ---
+    function getWeatherInterpretation(code) {
+      const mapping = {
+        0: "Clear Sky",
+        1: "Mainly Clear", 2: "Partly Cloudy", 3: "Overcast",
+        45: "Foggy", 48: "Depositing Rime Fog",
+        51: "Light Drizzle", 53: "Moderate Drizzle", 55: "Dense Drizzle",
+        61: "Slight Rain", 63: "Moderate Rain", 65: "Heavy Rain",
+        71: "Slight Snow", 73: "Moderate Snow", 75: "Heavy Snow",
+        80: "Slight Rain Showers", 81: "Moderate Rain Showers", 82: "Violent Rain Showers",
+        95: "Thunderstorm", 96: "Thunderstorm with Hail"
+      };
+      return mapping[code] || "Variable Conditions";
     }
 
-    // Execute feed fetch loops
-    setTimeout(() => { window.fetchStuffNews(); }, 500);
-    setInterval(window.fetchStuffNews, 300000);
+    // --- LIVE NATIVE WEATHER PARSER ENGINE (CORS-FREE) ---
+    function fetchLiveLocalWeather() {
+      const targetContainer = document.getElementById('weather-injection-point');
+      
+      // Fixed Coordinates for Lower Hutt, Wellington Region
+      const lat = "-41.2092";
+      const lon = "174.9081";
+      const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Pacific%2FAuckland`;
+
+      fetch(apiUrl)
+        .then(res => {
+          if (!res.ok) throw new Error("Weather service status anomaly");
+          return res.json();
+        })
+        .then(data => {
+          const current = data.current;
+          const daily = data.daily;
+          
+          const conditionText = getWeatherInterpretation(current.weather_code);
+          const currentTemp = Math.round(current.temperature_2m);
+          const feelsLike = Math.round(current.apparent_temperature);
+          const humidity = current.relative_humidity_2m;
+          const windSpeed = Math.round(current.wind_speed_10m);
+
+          // Build out structural layout cleanly inside target panel container
+          let forecastHtml = '';
+          const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          
+          // Generate upcoming 3 days prediction block loop
+          for(let i = 1; i <= 3; i++) {
+            const fDate = new Date(daily.time[i]);
+            const dayName = daysOfWeek[fDate.getDay()];
+            const fCondition = getWeatherInterpretation(daily.weather_code[i]);
+            const maxT = Math.round(daily.temperature_2m_max[i]);
+            const minT = Math.round(daily.temperature_2m_min[i]);
+
+            forecastHtml += `
+              <div class="forecast-item">
+                <div class="forecast-day">${dayName}</div>
+                <div class="forecast-meta">
+                  <div style="color: var(--text-bright); font-weight:600;">${fCondition}</div>
+                  <div style="font-size:0.8rem; opacity:0.8;">High: ${maxT}°C | Low: ${minT}°C</div>
+                </div>
+              </div>
+            `;
+          }
+
+          targetContainer.innerHTML = `
+            <div class="weather-container">
+              <div class="weather-main-display">
+                <div class="weather-temp">${currentTemp}°C</div>
+                <div class="weather-condition">${conditionText}</div>
+              </div>
+              
+              <div class="weather-meta-grid">
+                <div class="weather-meta-card">
+                  <span class="weather-meta-label">Feels Like</span>
+                  <span class="weather-meta-val">${feelsLike}°C</span>
+                </div>
+                <div class="weather-meta-card">
+                  <span class="weather-meta-label">Humidity</span>
+                  <span class="weather-meta-val">${humidity}%</span>
+                </div>
+                <div class="weather-meta-card">
+                  <span class="weather-meta-label">Wind Velocity</span>
+                  <span class="weather-meta-val">${windSpeed} km/h</span>
+                </div>
+                <div class="weather-meta-card">
+                  <span class="weather-meta-label">Station Region</span>
+                  <span class="weather-meta-val">Lower Hutt</span>
+                </div>
+              </div>
+
+              <div style="margin-top: 10px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: var(--upcoming-accent); font-weight:bold;">
+                3-Day Outlook Trend
+              </div>
+              <div class="forecast-row">
+                ${forecastHtml}
+              </div>
+            </div>
+          `;
+        })
+        .catch(err => {
+          console.error(err);
+          targetContainer.innerHTML = "<div class='weather-status-message'>Unable to verify local weather streaming context. Retrying...</div>";
+        });
+    }
+
+    // Trigger instant evaluation and update telemetry loop sequence every 15 minutes
+    fetchLiveLocalWeather();
+    setInterval(fetchLiveLocalWeather, 900000);
 
     function getSubjectColor(subjectName) {
       if (!subjectName) return '#66fcf1';
