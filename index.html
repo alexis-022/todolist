@@ -234,7 +234,7 @@
     }
     .week-btn:hover { background: rgba(102, 252, 241, 0.1); }
 
-    /* --- STUFF NEWS HUB EXTRA STYLING --- */
+    /* --- STUFF NEWS HUB BLUEPRINT --- */
     .news-feed-wrapper {
       display: flex;
       flex-direction: column;
@@ -263,7 +263,7 @@
 
     .news-image-header {
       width: 100%;
-      height: 140px;
+      height: 150px;
       background-size: cover;
       background-position: center;
       background-color: rgba(255, 255, 255, 0.05);
@@ -447,71 +447,87 @@
       document.getElementById('classes-list').innerHTML = "<div class='no-classes'>Database connection failure.</div>";
     });
 
-    // --- STUFF RSS ENGINE PROCESSOR ---
-    const STUFF_RSS_URL = "https://www.stuff.co.nz/rss";
-
+    // --- DIRECT LIVE XML RSS PARSER ENGINE ---
     function fetchStuffNews() {
       const targetContainer = document.getElementById('news-injection-point');
-      const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(STUFF_RSS_URL)}`;
+      // Direct raw text bypass prevents API caching issues
+      const nativeFeedUrl = "https://www.stuff.co.nz/rss";
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(nativeFeedUrl)}&_=${Date.now()}`;
 
       fetch(proxyUrl)
-        .then(res => res.json())
+        .then(res => {
+          if (res.ok) return res.json();
+          throw new Error('Network error');
+        })
         .then(data => {
-          if (data && data.items && data.items.length > 0) {
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+          const items = xmlDoc.getElementsByTagName("item");
+
+          if (items && items.length > 0) {
             targetContainer.innerHTML = '';
             
-            // Slice down strictly to the top 3 items
-            const topThree = data.items.slice(0, 3);
+            // Limit explicitly to top 3 elements
+            const limit = Math.min(items.length, 3);
 
-            topThree.forEach(item => {
-              // Extract preview thumbnail image links if wrapped in code description keys
-              let fallbackThumbnail = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%23333" stroke-width="1"%3E%3Crect width="24" height="24" fill="%23131922"/%3E%3Cpath d="M21 12H3"/%3E%3C/svg%3E';
+            for (let i = 0; i < limit; i++) {
+              const item = items[i];
               
-              if (item.thumbnail) {
-                fallbackThumbnail = item.thumbnail;
-              } else if (item.enclosure && item.enclosure.link) {
-                fallbackThumbnail = item.enclosure.link;
-              } else if (item.description) {
-                // Regular Expression parsing backup fallback captures structural image tags from source
-                const imgMatch = item.description.match(/<img[^>]+src="([^">]+)"/);
-                if (imgMatch && imgMatch[1]) fallbackThumbnail = imgMatch[1];
+              const title = item.getElementsByTagName("title")[0]?.textContent || "Untitled Story";
+              const link = item.getElementsByTagName("link")[0]?.textContent || "#";
+              const pubDate = item.getElementsByTagName("pubDate")[0]?.textContent || "";
+              const description = item.getElementsByTagName("description")[0]?.textContent || "";
+              
+              // Extract imagery from direct media namespace markers or enclosure attributes
+              let imgUrl = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%23333" stroke-width="1"%3E%3Crect width="24" height="24" fill="%23131922"/%3E%3Cline x1="3" y1="21" x2="21" y2="3" /%3E%3C/svg%3E';
+              
+              const enclosure = item.getElementsByTagName("enclosure")[0];
+              const mediaContent = item.getElementsByTagName("media:content")[0] || item.getElementsByTagName("content")[0];
+              
+              if (enclosure && enclosure.getAttribute("url")) {
+                imgUrl = enclosure.getAttribute("url");
+              } else if (mediaContent && mediaContent.getAttribute("url")) {
+                imgUrl = mediaContent.getAttribute("url");
+              } else {
+                // Regex parser scrapes layout images hidden inside description fields
+                const imgMatch = description.match(/<img[^>]+src="([^">]+)"/);
+                if (imgMatch && imgMatch[1]) imgUrl = imgMatch[1];
               }
 
-              // Build interactive article item cards
+              // Format date string
+              let displayDate = "Recently";
+              if (pubDate) {
+                const dateObj = new Date(pubDate);
+                displayDate = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+              }
+
               const articleLink = document.createElement('a');
               articleLink.className = 'news-article-card';
-              articleLink.href = item.link;
+              articleLink.href = link;
               articleLink.target = '_blank';
 
-              // Format date cleanly
-              let formattedDate = "Recently";
-              if(item.pubDate) {
-                const dateObj = new Date(item.pubDate);
-                formattedDate = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
-              }
-
               articleLink.innerHTML = `
-                <div class="news-image-header" style="background-image: url('${fallbackThumbnail}');"></div>
+                <div class="news-image-header" style="background-image: url('${imgUrl}');"></div>
                 <div class="news-card-body">
-                  <div class="news-card-date">🕒 ${formattedDate}</div>
-                  <div class="news-card-title">${item.title}</div>
+                  <div class="news-card-date">News: ${displayDate}</div>
+                  <div class="news-card-title">${title}</div>
                 </div>
               `;
               targetContainer.appendChild(articleLink);
-            });
+            }
           } else {
-            targetContainer.innerHTML = "<div class='news-status-message'>No current articles available.</div>";
+            targetContainer.innerHTML = "<div class='news-status-message'>No current articles found.</div>";
           }
         })
         .catch(err => {
           console.error(err);
-          targetContainer.innerHTML = "<div class='news-status-message'>Failed to refresh Stuff headlines.</div>";
+          targetContainer.innerHTML = "<div class='news-status-message'>Failed to refresh live Stuff headlines.</div>";
         });
     }
 
-    // Trigger News Sync on Initialization and clock it to update every 10 minutes
+    // Trigger immediate feed processing and schedule execution every 5 minutes
     fetchStuffNews();
-    setInterval(fetchStuffNews, 600000);
+    setInterval(fetchStuffNews, 300000);
 
     function getSubjectColor(subjectName) {
       if (!subjectName) return '#66fcf1';
