@@ -447,87 +447,107 @@
       document.getElementById('classes-list').innerHTML = "<div class='no-classes'>Database connection failure.</div>";
     });
 
-    // --- DIRECT LIVE XML RSS PARSER ENGINE ---
+    // --- STABLE LIVE XML RSS PARSER ENGINE ---
     function fetchStuffNews() {
       const targetContainer = document.getElementById('news-injection-point');
-      // Direct raw text bypass prevents API caching issues
       const nativeFeedUrl = "https://www.stuff.co.nz/rss";
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(nativeFeedUrl)}&_=${Date.now()}`;
+      
+      // Secondary proxy wrapper bypasses CORS restrictions cleanly
+      const proxyUrl = `https://cors-proxy.htmldriven.com/?url=${encodeURIComponent(nativeFeedUrl)}`;
 
       fetch(proxyUrl)
         .then(res => {
           if (res.ok) return res.json();
-          throw new Error('Network error');
+          throw new Error('Primary proxy offline');
         })
         .then(data => {
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(data.contents, "text/xml");
-          const items = xmlDoc.getElementsByTagName("item");
+          const rawXml = data.body || data.contents;
+          if (!rawXml) throw new Error('No readable packet content');
 
-          if (items && items.length > 0) {
-            targetContainer.innerHTML = '';
-            
-            // Limit explicitly to top 3 elements
-            const limit = Math.min(items.length, 3);
-
-            for (let i = 0; i < limit; i++) {
-              const item = items[i];
-              
-              const title = item.getElementsByTagName("title")[0]?.textContent || "Untitled Story";
-              const link = item.getElementsByTagName("link")[0]?.textContent || "#";
-              const pubDate = item.getElementsByTagName("pubDate")[0]?.textContent || "";
-              const description = item.getElementsByTagName("description")[0]?.textContent || "";
-              
-              // Extract imagery from direct media namespace markers or enclosure attributes
-              let imgUrl = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%23333" stroke-width="1"%3E%3Crect width="24" height="24" fill="%23131922"/%3E%3Cline x1="3" y1="21" x2="21" y2="3" /%3E%3C/svg%3E';
-              
-              const enclosure = item.getElementsByTagName("enclosure")[0];
-              const mediaContent = item.getElementsByTagName("media:content")[0] || item.getElementsByTagName("content")[0];
-              
-              if (enclosure && enclosure.getAttribute("url")) {
-                imgUrl = enclosure.getAttribute("url");
-              } else if (mediaContent && mediaContent.getAttribute("url")) {
-                imgUrl = mediaContent.getAttribute("url");
-              } else {
-                // Regex parser scrapes layout images hidden inside description fields
-                const imgMatch = description.match(/<img[^>]+src="([^">]+)"/);
-                if (imgMatch && imgMatch[1]) imgUrl = imgMatch[1];
-              }
-
-              // Format date string
-              let displayDate = "Recently";
-              if (pubDate) {
-                const dateObj = new Date(pubDate);
-                displayDate = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-              }
-
-              const articleLink = document.createElement('a');
-              articleLink.className = 'news-article-card';
-              articleLink.href = link;
-              articleLink.target = '_blank';
-
-              articleLink.innerHTML = `
-                <div class="news-image-header" style="background-image: url('${imgUrl}');"></div>
-                <div class="news-card-body">
-                  <div class="news-card-date">News: ${displayDate}</div>
-                  <div class="news-card-title">${title}</div>
-                </div>
-              `;
-              targetContainer.appendChild(articleLink);
-            }
-          } else {
-            targetContainer.innerHTML = "<div class='news-status-message'>No current articles found.</div>";
-          }
+          parseAndRenderXmlNews(rawXml);
         })
         .catch(err => {
-          console.error(err);
-          targetContainer.innerHTML = "<div class='news-status-message'>Failed to refresh live Stuff headlines.</div>";
+          console.warn("Primary proxy failed, engaging fallback channel:", err);
+          
+          // Emergency Strategy Fallback: Fires if htmldriven fails or times out
+          const backupProxy = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(nativeFeedUrl)}`;
+          fetch(backupProxy)
+            .then(res => {
+              if (res.ok) return res.text();
+              throw new Error('Backup failed');
+            })
+            .then(xmlText => {
+              parseAndRenderXmlNews(xmlText);
+            })
+            .catch(finalErr => {
+              console.error("All proxies exhausted:", finalErr);
+              if (!targetContainer.querySelector('.news-article-card')) {
+                targetContainer.innerHTML = "<div class='news-status-message'>Connection proxy rate-limited. Retrying shortly.</div>";
+              }
+            });
         });
     }
 
-    // Trigger immediate feed processing and schedule execution every 5 minutes
+    function parseAndRenderXmlNews(xmlString) {
+      const targetContainer = document.getElementById('news-injection-point');
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+      const items = xmlDoc.getElementsByTagName("item");
+
+      if (items && items.length > 0) {
+        targetContainer.innerHTML = '';
+        const limit = Math.min(items.length, 3);
+
+        for (let i = 0; i < limit; i++) {
+          const item = items[i];
+          
+          const title = item.getElementsByTagName("title")[0]?.textContent || "Untitled Story";
+          const link = item.getElementsByTagName("link")[0]?.textContent || "#";
+          const pubDate = item.getElementsByTagName("pubDate")[0]?.textContent || "";
+          const description = item.getElementsByTagName("description")[0]?.textContent || "";
+          
+          let imgUrl = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%23333" stroke-width="1"%3E%3Crect width="24" height="24" fill="%23131922"/%3E%3Cline x1="3" y1="21" x2="21" y2="3" /%3E%3C/svg%3E';
+          
+          const enclosure = item.getElementsByTagName("enclosure")[0];
+          const mediaContent = item.getElementsByTagName("media:content")[0] || item.getElementsByTagName("content")[0];
+          
+          if (enclosure && enclosure.getAttribute("url")) {
+            imgUrl = enclosure.getAttribute("url");
+          } else if (mediaContent && mediaContent.getAttribute("url")) {
+            imgUrl = mediaContent.getAttribute("url");
+          } else {
+            const imgMatch = description.match(/<img[^>]+src="([^">]+)"/);
+            if (imgMatch && imgMatch[1]) imgUrl = imgMatch[1];
+          }
+
+          let displayDate = "Recently";
+          if (pubDate) {
+            const dateObj = new Date(pubDate);
+            displayDate = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          }
+
+          const articleLink = document.createElement('a');
+          articleLink.className = 'news-article-card';
+          articleLink.href = link;
+          articleLink.target = '_blank';
+
+          articleLink.innerHTML = `
+            <div class="news-image-header" style="background-image: url('${imgUrl}');"></div>
+            <div class="news-card-body">
+              <div class="news-card-date">News: ${displayDate}</div>
+              <div class="news-card-title">${title}</div>
+            </div>
+          `;
+          targetContainer.appendChild(articleLink);
+        }
+      } else {
+        targetContainer.innerHTML = "<div class='news-status-message'>No current articles found.</div>";
+      }
+    }
+
+    // Trigger explicit instant news feed execution loop
     fetchStuffNews();
-    setInterval(fetchStuffNews, 300000);
+    setInterval(fetchStuffNews, 300000); // Check for updates every 5 minutes
 
     function getSubjectColor(subjectName) {
       if (!subjectName) return '#66fcf1';
