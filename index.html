@@ -32,7 +32,7 @@
       padding: 0;
       width: 100%;
       height: 100%;
-      overflow: hidden; /* Strict lock preventing browser level workspace layout shifts */
+      overflow: hidden; 
     }
 
     body {
@@ -54,7 +54,7 @@
       width: 100%;
       height: 100%;
       max-width: 1100px;
-      max-height: 850px; /* Perfectly bounds display layout on mid to high-res laptop displays */
+      max-height: 850px; 
     }
 
     @media (max-width: 768px) {
@@ -76,7 +76,7 @@
       flex-direction: column;
       box-sizing: border-box;
       height: 100%; 
-      overflow: hidden; /* Keeps panel framework rigid */
+      overflow: hidden; 
     }
 
     .header-section {
@@ -84,7 +84,7 @@
       margin-bottom: 15px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       padding-bottom: 12px;
-      flex-shrink: 0; /* Prevents text layout headers from squishing */
+      flex-shrink: 0; 
     }
 
     h2 {
@@ -109,13 +109,12 @@
       font-weight: bold;
     }
 
-    /* Target Dynamic Frame for Internal Content */
     #classes-list {
       display: flex;
       flex-direction: column;
       gap: 10px;
       flex-grow: 1;
-      overflow-y: auto; /* Clean internal scroll system if schedule overflows structural parameters */
+      overflow-y: auto; 
       padding: 4px; 
       box-sizing: border-box;
     }
@@ -246,11 +245,75 @@
     }
     .week-btn:hover { background: rgba(102, 252, 241, 0.1); }
 
+    /* --- REALISTIC STICKY NOTE COMPONENT --- */
+    .sticky-note-wrapper {
+      padding: 5px 15px 15px 15px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .sticky-note {
+      background: #fdf59b; /* Classic Post-It Canary Yellow */
+      color: #222222;
+      width: 100%;
+      max-width: 340px;
+      height: 120px;
+      padding: 15px;
+      box-sizing: border-box;
+      position: relative;
+      transform: rotate(-1.5deg); /* Natural imperfect placement angle */
+      box-shadow: 2px 8px 15px rgba(0, 0, 0, 0.35), 
+                  0px 2px 4px rgba(0, 0, 0, 0.1);
+      border-bottom-right-radius: 30px 4px; /* Simulates loose lifting paper corner edge */
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top glue-strip shadow indentation simulation */
+    .sticky-note::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 10px;
+      background: rgba(0, 0, 0, 0.03);
+    }
+
+    .sticky-note-textarea {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      border: none;
+      resize: none;
+      outline: none;
+      color: #111111;
+      font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif; /* Simulates a physical marker/handwriting font */
+      font-size: 1.05rem;
+      line-height: 1.4;
+      padding: 0;
+      margin: 0;
+    }
+
+    .sticky-note-status {
+      position: absolute;
+      bottom: 6px;
+      right: 12px;
+      font-size: 0.65rem;
+      font-family: sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: rgba(0,0,0,0.35);
+      font-weight: bold;
+    }
+
     /* --- WEATHER HUB COMPACT VIEWPORT STYLES --- */
     .weather-scroll-frame {
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 12px;
       flex-grow: 1;
       overflow-y: auto;
       padding-right: 2px;
@@ -260,24 +323,24 @@
       background: rgba(255, 255, 255, 0.02);
       border: 1px solid rgba(255, 255, 255, 0.05);
       border-radius: 16px;
-      padding: 15px;
+      padding: 12px;
       text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
+      gap: 2px;
       flex-shrink: 0;
     }
 
     .weather-temp {
-      font-size: 2.8rem;
+      font-size: 2.5rem;
       font-weight: 800;
       color: var(--text-bright);
       line-height: 1;
     }
 
     .weather-condition {
-      font-size: 1.1rem;
+      font-size: 1rem;
       color: var(--upcoming-accent);
       font-weight: 600;
       text-transform: uppercase;
@@ -287,29 +350,29 @@
     .weather-meta-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      gap: 8px;
       flex-shrink: 0;
     }
 
     .weather-meta-card {
       background: rgba(255, 255, 255, 0.02);
       border: 1px solid rgba(255, 255, 255, 0.04);
-      padding: 10px 12px;
-      border-radius: 12px;
+      padding: 8px 10px;
+      border-radius: 10px;
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 1px;
     }
 
     .weather-meta-label {
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       text-transform: uppercase;
       color: var(--text-main);
       opacity: 0.65;
     }
 
     .weather-meta-val {
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 700;
       color: var(--text-bright);
     }
@@ -317,7 +380,7 @@
     .forecast-row {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
 
     .forecast-item {
@@ -325,8 +388,8 @@
       justify-content: space-between;
       align-items: center;
       background: rgba(255, 255, 255, 0.01);
-      padding: 10px 14px;
-      border-radius: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
       border-left: 4px solid var(--upcoming-accent);
       flex-shrink: 0;
     }
@@ -334,11 +397,11 @@
     .forecast-day {
       font-weight: 600;
       color: var(--text-bright);
-      font-size: 0.95rem;
+      font-size: 0.9rem;
     }
 
     .forecast-meta {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       color: var(--text-main);
       text-align: right;
     }
@@ -444,11 +507,18 @@
 
     <div class="dashboard-panel">
       <div class="header-section">
-        <div style="font-size: 0.85rem; color: var(--upcoming-accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">Environment Metrics</div>
-        <h2>Local Weather</h2>
-        <div style="font-size: 0.9rem; opacity: 0.6; font-style: italic;">Lower Hutt Region</div>
+        <div style="font-size: 0.85rem; color: var(--upcoming-accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">Workspace Status</div>
+        <h2>Hub Telemetry</h2>
+        <div style="font-size: 0.9rem; opacity: 0.6; font-style: italic;">Lower Hutt, NZ</div>
       </div>
       
+      <div class="sticky-note-wrapper">
+        <div class="sticky-note">
+          <textarea id="firebase-sticky" class="sticky-note-textarea" placeholder="Tap to scribble a note..." maxlength="120"></textarea>
+          <div id="sticky-status" class="sticky-note-status">Synced</div>
+        </div>
+      </div>
+
       <div class="weather-scroll-frame" id="weather-injection-point">
         <div class="weather-status-message">Connecting to Open-Meteo satellite grid...</div>
       </div>
@@ -467,7 +537,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
+    import { getDatabase, ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyA1cOfZneI_ss-QmQCkZostIQngpQ_JbtE",
@@ -485,11 +555,11 @@
     let globalScheduleCache = null;
     let hasInitiallyAnchored = false; 
 
+    // --- TIMETABLE INITIALIZATION ---
     const timetableRef = ref(database, 'timetable');
     get(timetableRef).then((snapshot) => {
       if (snapshot.exists()) {
         globalScheduleCache = snapshot.val();
-        
         updateDashboard(globalScheduleCache);
         buildWeekModalGrid(globalScheduleCache);
         setInterval(() => updateDashboard(globalScheduleCache), 1000);
@@ -501,18 +571,45 @@
       document.getElementById('classes-list').innerHTML = "<div class='no-classes'>Database connection failure.</div>";
     });
 
+    // --- LIVE STICKY NOTE SYNC MODULE ---
+    const stickyTextarea = document.getElementById('firebase-sticky');
+    const stickyStatus = document.getElementById('sticky-status');
+    const stickyRef = ref(database, 'dashboard_note');
+    let dbWriteDebounceTimeout = null;
+
+    // Realtime Incoming Sync Listener
+    onValue(stickyRef, (snapshot) => {
+      if (document.activeElement !== stickyTextarea) {
+        stickyTextarea.value = snapshot.val() || "";
+        stickyStatus.innerText = "Synced";
+      }
+    });
+
+    // Handle user keyboard inputs with debounced background database saves
+    stickyTextarea.addEventListener('input', () => {
+      stickyStatus.innerText = "Typing...";
+      clearTimeout(dbWriteDebounceTimeout);
+      
+      dbWriteDebounceTimeout = setTimeout(() => {
+        set(stickyRef, stickyTextarea.value)
+          .then(() => { stickyStatus.innerText = "Synced"; })
+          .catch((err) => { 
+            console.error(err);
+            stickyStatus.innerText = "Error Saving"; 
+          });
+      }, 1000); // Wait 1 second after typing stops before uploading
+    });
+
+    // --- LIVE NATIVE WEATHER PARSER ENGINE ---
     function getWeatherInterpretation(code) {
       const mapping = {
-        0: "Clear Sky",
-        1: "Mainly Clear", 2: "Partly Cloudy", 3: "Overcast",
-        45: "Foggy", 48: "Rime Fog",
-        51: "Light Drizzle", 53: "Moderate Drizzle", 55: "Dense Drizzle",
-        61: "Slight Rain", 63: "Moderate Rain", 65: "Heavy Rain",
-        71: "Slight Snow", 73: "Moderate Snow", 75: "Heavy Snow",
-        80: "Slight Showers", 81: "Moderate Showers", 82: "Violent Showers",
-        95: "Thunderstorm", 96: "Thunderstorm with Hail"
+        0: "Clear Sky", 1: "Mainly Clear", 2: "Partly Cloudy", 3: "Overcast",
+        45: "Foggy", 48: "Rime Fog", 51: "Light Drizzle", 53: "Mod Drizzle",
+        55: "Dense Drizzle", 61: "Slight Rain", 63: "Moderate Rain", 65: "Heavy Rain",
+        71: "Slight Snow", 73: "Mod Snow", 75: "Heavy Snow", 80: "Slight Showers",
+        81: "Mod Showers", 82: "Violent Showers", 95: "Thunderstorm", 96: "Storm + Hail"
       };
-      return mapping[code] || "Variable Conditions";
+      return mapping[code] || "Variable Cond.";
     }
 
     function fetchLiveLocalWeather() {
@@ -551,7 +648,7 @@
                 <div class="forecast-day">${dayName}</div>
                 <div class="forecast-meta">
                   <div style="color: var(--text-bright); font-weight:600;">${fCondition}</div>
-                  <div style="font-size:0.8rem; opacity:0.8;">High: ${maxT}°C | Low: ${minT}°C</div>
+                  <div style="font-size:0.75rem; opacity:0.8;">High: ${maxT}°C | Low: ${minT}°C</div>
                 </div>
               </div>
             `;
@@ -582,7 +679,7 @@
               </div>
             </div>
 
-            <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--upcoming-accent); font-weight:bold; flex-shrink:0; margin-top:2px;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--upcoming-accent); font-weight:bold; flex-shrink:0; margin-top:2px;">
               3-Day Outlook Trend
             </div>
             <div class="forecast-row">
