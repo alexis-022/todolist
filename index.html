@@ -3,54 +3,186 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Personal Dashboard</title>
+  <title>Personal Dashboard - Weather</title>
   
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2366fcf1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E">
+
+  <style>
+    :root {
+      --bg-color: #0b0c10;
+      --card-bg: #1f2833;
+      --text-main: #c5c6c7;
+      --accent: #66fcf1;
+      --accent-dim: #45a29e;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    /* Dashboard Container */
+    .dashboard {
+      background: var(--card-bg);
+      border: 1px solid var(--accent-dim);
+      border-radius: 16px;
+      padding: 2rem;
+      width: 90%;
+      max-width: 450px;
+      box-shadow: 0 0 20px rgba(102, 252, 241, 0.1);
+      animation: fadeIn 1s ease-out, glowPulse 4s infinite alternate;
+    }
+
+    h2 {
+      color: var(--accent);
+      margin-top: 0;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 1.4rem;
+      border-bottom: 2px solid var(--accent-dim);
+      padding-bottom: 0.5rem;
+    }
+
+    .station-info {
+      font-size: 0.85rem;
+      color: var(--accent-dim);
+      margin-bottom: 1.5rem;
+    }
+
+    /* Grid layout for weather details */
+    .weather-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .metric-card {
+      background: rgba(11, 12, 16, 0.6);
+      padding: 1rem;
+      border-radius: 8px;
+      border-left: 3px solid var(--accent);
+      transform: translateY(0);
+      transition: transform 0.3s ease;
+    }
+
+    .metric-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: var(--text-main);
+      opacity: 0.7;
+      margin-bottom: 0.3rem;
+    }
+
+    .value {
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #ffffff;
+    }
+
+    /* Status indicator for loading/errors */
+    #status-msg {
+      color: var(--accent);
+      font-style: italic;
+      text-align: center;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes glowPulse {
+      0% { box-shadow: 0 0 20px rgba(102, 252, 241, 0.05); }
+      100% { box-shadow: 0 0 30px rgba(102, 252, 241, 0.2); border-color: var(--accent); }
+    }
+  </style>
 </head>
 <body>
 
-  <script type="module">
-var request = new XMLHttpRequest();
-
-request.open('GET', 'https://avwx.rest/api/metar/WLG');
-
-request.setRequestHeader('Authorization', 'VOFTX7gYcM4zvFQVPaZr5vvE6LKv-q_E3tr3nTEhk5A');
-
-request.onreadystatechange = function () {
-  if (this.readyState === 4) {
-    console.log('Status:', this.status);
+  <div class="dashboard">
+    <h2>Current Weather</h2>
+    <div class="station-info" id="station-display">Loading station...</div>
     
-    if (this.status === 200) {
-      // Convert the raw text response into a JavaScript object
-      var weatherData = JSON.parse(this.responseText);
-      
-      // Extract the required weather parameters
-      var temp = weatherData.temperature.value;
-      var tempUnit = weatherData.units.temperature;
-      
-      var windSpd = weatherData.wind_speed.value;
-      var windUnit = weatherData.units.wind_speed;
-      var windDir = weatherData.wind_direction.value;
-      
-      var humidity = Math.round(weatherData.relative_humidity * 100);
-      
-      var conditions = weatherData.wx_codes.length > 0 ? weatherData.wx_codes[0].value : "Clear";
-      
-      // Output the extracted information to the console
-      console.log('--- Current Weather ---');
-      console.log('Temperature:', temp + '°' + tempUnit);
-      console.log('Conditions:', conditions);
-      console.log('Wind:', windSpd + ' ' + windUnit + ' from ' + windDir + '°');
-      console.log('Humidity:', humidity + '%');
+    <div id="status-msg">Connecting to satellite stream...</div>
 
-    } else {
-      console.log('Error fetching data from API. Status:', this.status);
-    }
-  }
-};
+    <div class="weather-grid" id="weather-content" style="display: none;">
+      <div class="metric-card">
+        <div class="label">Temperature</div>
+        <div class="value" id="temp-val">--</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Conditions</div>
+        <div class="value" id="cond-val">--</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Wind Speed</div>
+        <div class="value" id="wind-val">--</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Humidity</div>
+        <div class="value" id="hum-val">--</div>
+      </div>
+    </div>
+  </div>
 
-request.send();
+  <script type="module">
+    var request = new XMLHttpRequest();
 
+    request.open('GET', 'https://avwx.rest/api/metar/WLG');
+    request.setRequestHeader('Authorization', 'VOFTX7gYcM4zvFQVPaZr5vvE6LKv-q_E3tr3nTEhk5A');
+
+    request.onreadystatechange = function () {
+      if (this.readyState === 4) {
+        if (this.status === 200) {
+          var weatherData = JSON.parse(this.responseText);
+          
+          // 1. Data Processing
+          var temp = weatherData.temperature.value;
+          var tempUnit = weatherData.units.temperature;
+          
+          // Conversion: Knots to KM/H (Multiplier: 1.852)
+          var windKnots = weatherData.wind_speed.value;
+          var windKmh = Math.round(windKnots * 1.852);
+          var windDir = weatherData.wind_direction.value;
+          
+          var humidity = Math.round(weatherData.relative_humidity * 100);
+          var conditions = weatherData.wx_codes.length > 0 ? weatherData.wx_codes[0].value : "Clear";
+          var stationCode = weatherData.station;
+
+          // Map known ICAO codes to friendly names
+          var stationName = stationCode === "NZWN" ? "Wellington International Airport (NZWN)" : "Station: " + stationCode;
+          
+          // 2. DOM Injection
+          document.getElementById('station-display').innerText = stationName;
+          document.getElementById('temp-val').innerText = temp + "°" + tempUnit;
+          document.getElementById('cond-val').innerText = conditions;
+          document.getElementById('wind-val').innerText = windKmh + " km/h (" + windDir + "°)";
+          document.getElementById('hum-val').innerText = humidity + "%";
+          
+          // UI Layout toggle
+          document.getElementById('status-msg').style.display = 'none';
+          document.getElementById('weather-content').style.display = 'grid';
+
+        } else {
+          document.getElementById('status-msg').innerText = "Failed to update dashboard. (Status: " + this.status + ")";
+        }
+      }
+    };
+
+    request.send();
   </script>
 </body>
 </html>
