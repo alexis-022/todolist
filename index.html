@@ -10,7 +10,7 @@
 <body>
 
   <script type="module">
-    var request = new XMLHttpRequest();
+var request = new XMLHttpRequest();
 
 request.open('GET', 'https://avwx.rest/api/metar/WLG');
 
@@ -19,12 +19,38 @@ request.setRequestHeader('Authorization', 'VOFTX7gYcM4zvFQVPaZr5vvE6LKv-q_E3tr3n
 request.onreadystatechange = function () {
   if (this.readyState === 4) {
     console.log('Status:', this.status);
-    console.log('Headers:', this.getAllResponseHeaders());
-    console.log('Body:', this.responseText);
+    
+    if (this.status === 200) {
+      // Convert the raw text response into a JavaScript object
+      var weatherData = JSON.parse(this.responseText);
+      
+      // Extract the required weather parameters
+      var temp = weatherData.temperature.value;
+      var tempUnit = weatherData.units.temperature;
+      
+      var windSpd = weatherData.wind_speed.value;
+      var windUnit = weatherData.units.wind_speed;
+      var windDir = weatherData.wind_direction.value;
+      
+      var humidity = Math.round(weatherData.relative_humidity * 100);
+      
+      var conditions = weatherData.wx_codes.length > 0 ? weatherData.wx_codes[0].value : "Clear";
+      
+      // Output the extracted information to the console
+      console.log('--- Current Weather ---');
+      console.log('Temperature:', temp + '°' + tempUnit);
+      console.log('Conditions:', conditions);
+      console.log('Wind:', windSpd + ' ' + windUnit + ' from ' + windDir + '°');
+      console.log('Humidity:', humidity + '%');
+
+    } else {
+      console.log('Error fetching data from API. Status:', this.status);
+    }
   }
 };
 
 request.send();
+
   </script>
 </body>
 </html>
