@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Playing Around</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/png" href="favicon.png?v=2">
+  <link rel="shortcut icon" href="favicon.png?v=2">
 
   <!-- firebase start ****************************************-->
   <script src="https://www.gstatic.com/firebasejs/8.1.2/firebase-app.js"></script>
@@ -15,7 +17,6 @@
   <!-- firebase end ******************************************-->
 
   <script src="fb_setup.js"></script>
-  <script src="fb_io.js" defer></script>
 
 </head>
 
@@ -24,13 +25,25 @@
     <div id="mainContent">
       <h1>Playing Around</h1>
       <button onclick="fb_authenticate()" type="button" id="loginButton">Log in with Google</button>
+
+      <form>
+        <label for="fname">First Name</label>
+        <input type="text" id="fname" name="firstname" placeholder="Your name..">
+
+        <label for="lname">Last Name</label>
+        <input type="text" id="lname" name="lastname" placeholder="Your last name..">
+        <button onclick="fb_writeForm()" type="button" id="submitButton">Submit</button>
+      </form>
+
+
+
     </div>
     <div id="topBar">
       <div id="profilePhoto" onclick="getProfileInfo()">
       </div>
     </div>
   </div>
-
+  <script src="fb_io.js"></script>
   <script src="script.js"></script>
 </body>
 

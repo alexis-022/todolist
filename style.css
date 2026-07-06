@@ -90,3 +90,52 @@ h1 {
 #loginButton:hover {
     background-color: #003a37;
 }
+
+
+
+
+
+
+
+
+form {
+  border-radius: 4px;
+  background-color: #9ec5c6;
+  padding: 20px;
+  width: 400px;
+  margin-top: 10px;
+}
+
+input[type=text] {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  box-sizing: border-box;
+  border: 3px solid #bfdbdd;
+  transition: 0.5s;
+  outline: none;
+  border-radius: 4px;
+}
+
+input[type=text]:focus {
+  border: 3px solid #003a37;
+}
+
+#submitButton {
+  background-color: #045149;
+  color: white;
+  text-decoration: none;
+  cursor: pointer;
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  box-sizing: border-box;
+  border: none;
+  transition: 0.5s;
+  outline: none;
+  border-radius: 4px;
+}
+
+#submitButton:hover {
+    background-color: #003a37;
+}
