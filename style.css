@@ -1,3 +1,6 @@
+@import url('https://db.onlinewebfonts.com/c/1308b9fd70f82350f3ebb8d80a1d8497?family=Gentleman-Regular');
+
+
 body {
     background-color: #003a37;
     font-family: "Plus Jakarta Sans", sans-serif;
@@ -9,7 +12,12 @@ body {
     width: 100vw;
     box-sizing: border-box;
     padding: 12px;
+    overflow-x: hidden; /* Prevents any accidental horizontal scrolling on mobile */
+}
 
+/* Ensure all elements calculate sizing properly */
+*, *:before, *:after {
+    box-sizing: inherit;
 }
 
 #profilePhoto {
@@ -31,7 +39,7 @@ body {
     height: 50px;
     padding: 10px;
     display: none;
-    font-size:15px;
+    font-size: 15px;
     text-align: right;
     box-shadow:
         0 20px 25px -5px rgba(0, 0, 0, 0.2),
@@ -48,15 +56,17 @@ h1 {
 
 #mainLayout {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    width: 100%;
+    flex-direction: column; /* Stack vertically on mobile first */
+    justify-content: flex-start;
+    align-items: stretch;
     background-color: #ffffff;
-    width: 100%;
-    height: 100%;
+    /* Forces layout to fill the exact remaining screen viewport size minus padding */
+    width: calc(100vw - 24px); 
+    height: calc(100vh - 24px);
     padding: 10px;
     box-sizing: border-box;
     border-radius: 4px;
+    overflow-y: auto; /* Allows content inside to scroll if it exceeds the screen height */
 }
 
 #mainContent {
@@ -70,6 +80,7 @@ h1 {
     align-items: center;
     margin: 0px;
     gap: 15px;
+    flex-wrap: wrap;
 }
 
 #loginButton {
@@ -99,43 +110,184 @@ h1 {
 
 
 form {
-  border-radius: 4px;
-  background-color: #9ec5c6;
-  padding: 20px;
-  width: 400px;
-  margin-top: 10px;
+    border-radius: 4px;
+    background-color: #9ec5c6;
+    padding: 20px;
+    width: 100%;
+    max-width: 400px; /* Scales down on mobile, matches original on desktop */
+    margin-top: 10px;
 }
 
 input[type=text] {
-  width: 100%;
-  padding: 12px;
-  margin: 8px 0;
-  box-sizing: border-box;
-  border: 3px solid #bfdbdd;
-  transition: 0.5s;
-  outline: none;
-  border-radius: 4px;
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    box-sizing: border-box;
+    border: 3px solid #bfdbdd;
+    transition: 0.5s;
+    outline: none;
+    border-radius: 4px;
 }
 
 input[type=text]:focus {
-  border: 3px solid #003a37;
+    border: 3px solid #003a37;
 }
 
 #submitButton {
-  background-color: #045149;
-  color: white;
-  text-decoration: none;
-  cursor: pointer;
-  width: 100%;
-  padding: 12px;
-  margin: 8px 0;
-  box-sizing: border-box;
-  border: none;
-  transition: 0.5s;
-  outline: none;
-  border-radius: 4px;
+    background-color: #045149;
+    color: white;
+    text-decoration: none;
+    cursor: pointer;
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    box-sizing: border-box;
+    border: none;
+    transition: 0.5s;
+    outline: none;
+    border-radius: 4px;
 }
 
 #submitButton:hover {
     background-color: #003a37;
+}
+
+
+#metlinkContainer {
+    border-radius: 4px;
+    background-color: #002A3A;
+    padding: 20px;
+    width: 100%;
+    max-width: 600px; /* Scales down on mobile, matches original on desktop */
+    margin-top: 10px;
+    font-family: 'Gentleman-Regular', sans-serif;
+    color: #ffffff;
+}
+
+.singleDeparture {
+    border-radius: 4px;
+    background-color: #ffffff;
+    color:#000000;
+    font-family: 'Gentleman-Regular', sans-serif;
+    padding: 5px;
+    width: 100%;
+    max-width: 400px; /* Scales down on mobile, matches original on desktop */
+    margin: 10px 0;
+}
+
+/* 1. Establish the boundary container */
+.transit-card {
+    position: relative;
+    /* Forces absolute children to stay inside this box */
+    min-height: 120px;
+    /* Give it height so top and bottom separate */
+    box-sizing: border-box;
+}
+
+/* 2. Strip out default margins that warp text positioning */
+.transit-card h4,
+.transit-card p {
+    position: absolute;
+    margin: 0;
+    padding: 10px;
+    /* Acts as padding from the edges */
+}
+
+/* 3. Lock each class to its respective corner */
+.top-left {
+    top: 5px;
+    left: 5px;
+}
+
+.bottom-left {
+    bottom: 0;
+    left: 0;
+}
+
+.top-right {
+    top: 0;
+    right: 0;
+    text-align: right;
+}
+
+.bottom-right {
+    bottom: 0;
+    right: 0;
+    text-align: right;
+}
+
+
+.lineIcon {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    color: #000000;
+    border:#000000 2px solid;
+    /* Black text */
+
+    /* Centering the text perfectly */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #000000;
+}
+
+.lineIcon[data-alert="HVL"] {
+    background-color: #f5b960;
+}
+.lineIcon[data-alert="JVL"] {
+    background-color: #4EC3E0;
+}
+.lineIcon[data-alert="MEL"] {
+    background-color: #f5b960;
+}
+.lineIcon[data-alert="KPL"] {
+    background-color: #E3E935;
+}
+.lineIcon[data-alert="WRL"] {
+    background-color: #FFCD00;
+    /* Orange color for HVL */
+}
+
+
+select,
+::picker(select) {
+    appearance: base-select;
+}
+
+::checkmark {
+    display: none;
+}
+
+::picker(select) {
+    background-color: white;
+    border: 2px solid #001f3f;
+    border-radius: 8px;
+    padding: 5px;
+}
+
+select option {
+    background-color: white;
+    padding: 8px;
+    color: black;
+}
+
+select option:hover {
+    background-color: #001f3f;
+    color: white;
+}
+
+#stationSelect {
+    background-color: white;
+    color: black;
+}
+
+/* --- Media Query for Desktop Views --- */
+@media (min-width: 768px) {
+    #mainLayout {
+        flex-direction: row; /* Returns layout to horizontal side-by-side split on desktop */
+        justify-content: space-between;
+        align-items: flex-start;
+    }
 }
