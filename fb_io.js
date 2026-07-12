@@ -118,14 +118,12 @@ function metlinkAPIGet(_stopID) {
       return response.json();
     })
     .then(data => {
-      console.log('Metlink Predictions Data:', data);
       // You can process the bus/train arrival times here
 
       let stop = stationArray.find(item => item.stop_id.replace(/\d$/, '') === _stopID);
 
-      document.getElementById("departureHeader").innerHTML = `Departures at ${stop?.stop_name}`;
+      //document.getElementById("departureHeader").innerHTML = `Departures at <br> ${stop?.stop_name}`;
 
-      console.log(data.departures[0]);
       let nextDeparture = data.departures[0];
       let nextDeparture2 = data.departures[1];
       let nextDeparture3 = data.departures[2];
@@ -143,6 +141,7 @@ function metlinkAPIGet(_stopID) {
       <p class="bottom-left">${nextDeparture.departure.expected === null ?
           convertTo12Hour(nextDeparture.departure.aimed) :
           convertTo12Hour(nextDeparture.departure.expected)}</p>
+      ${nextDeparture.wheelchair_accessible ? '<img src="https://www.metlink.org.nz/assets/Icons/Mobility-park.svg" alt="Mobility Park" width="30px" height="30px" id="wheelchair"/>' : ''}
       <p class="bottom-right">${nextDeparture.stop_id.replace(/\D/g, '') === '' ? '' : 'Platform ' + nextDeparture.stop_id.replace(/\D/g, '')}</p>
       `;
 
@@ -152,7 +151,8 @@ function metlinkAPIGet(_stopID) {
       <p class="bottom-left">${nextDeparture2.departure.expected === null ?
           convertTo12Hour(nextDeparture2.departure.aimed) :
           convertTo12Hour(nextDeparture2.departure.expected)}</p>
-      <p class="bottom-right">${nextDeparture2.stop_id.replace(/\D/g, '') === '' ? '' : 'Platform ' + nextDeparture2.stop_id.replace(/\D/g, ''  )}</p>
+      ${nextDeparture2.wheelchair_accessible ? '<img src="https://www.metlink.org.nz/assets/Icons/Mobility-park.svg" alt="Mobility Park" width="30px" height="30px" id="wheelchair"/>' : ''}
+      <p class="bottom-right">${nextDeparture2.stop_id.replace(/\D/g, '') === '' ? '' : 'Platform ' + nextDeparture2.stop_id.replace(/\D/g, '')}</p>
       `;
 
       departure3.innerHTML = `
@@ -161,6 +161,7 @@ function metlinkAPIGet(_stopID) {
       <p class="bottom-left">${nextDeparture3.departure.expected === null ?
           convertTo12Hour(nextDeparture3.departure.aimed) :
           convertTo12Hour(nextDeparture3.departure.expected)}</p>
+      ${nextDeparture3.wheelchair_accessible ? '<img src="https://www.metlink.org.nz/assets/Icons/Mobility-park.svg" alt="Mobility Park" width="30px" height="30px" id="wheelchair"/>' : ''}
       <p class="bottom-right">${nextDeparture3.stop_id.replace(/\D/g, '') === '' ? '' : 'Platform ' + nextDeparture3.stop_id.replace(/\D/g, '')}</p>
       `;
       /* Uncomment the following lines to log the next departure details to the console
@@ -212,18 +213,36 @@ const updateInterval = setInterval(function () {
 
 
 
-
-
 function convertTo12Hour(timeString) {
-  if (!timeString) return null; // Handle null or undefined timeString
+  if (!timeString) return null;
+
+  const now = new Date();
   const date = new Date(timeString);
-  const formattedTime = new Intl.DateTimeFormat('en-US', {
+
+  // Calculate exact difference in minutes, then round using standard rules
+  const diffMs = date - now;
+  const diffMinutes = Math.round(diffMs / 1000 / 60);
+
+  // Check the relative time window (0 to 9 minutes)
+  if (diffMinutes >= 0 && diffMinutes < 10) {
+    if (diffMinutes < 1) {
+      return 'Due';
+    }
+
+    // Fallback manual formatting ensures perfect pluralization and capitalization
+    const unit = diffMinutes === 1 ? 'Minute' : 'Minutes';
+    return `${diffMinutes} ${unit}`;
+  }
+
+  // Otherwise, fallback to standard 12-hour format
+  return new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true
   }).format(date);
-  return formattedTime;
 }
+
+
 
 function convertDuration(isoDuration) {
   const regex = /P(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?/;
@@ -321,6 +340,8 @@ async function formOptions() {
       optionsHTML += "<option value='" + stationArray[k].stop_id + "'>" + stationArray[k].stop_name + "</option>";
     }
     document.getElementById("stationSelect").innerHTML = optionsHTML;
+    document.getElementById("originSelect").innerHTML = optionsHTML;
+    document.getElementById("destinationSelect").innerHTML = optionsHTML;
 
   } catch (error) {
     console.error('Error fetching Metlink data:', error);
@@ -336,3 +357,164 @@ async function formOptions() {
     metlinkAPIGet(selectedStopID.replace(/\d$/, '')); // Remove the last digit from the stop ID
   });
 }
+
+
+/**************************/
+// journeyPlanner()
+/**************************/
+async function journeyPlanner() {
+  let originStopID = (document.getElementById("originSelect").value).replace(/\d$/, '');
+  let destinationStopID = (document.getElementById("destinationSelect").value).replace(/\d$/, '');
+  let destinationStopName = document.getElementById("destinationSelect").options[document.getElementById("destinationSelect").selectedIndex].text;
+  
+  console.log(`Origin Stop ID: ${originStopID}, Destination Stop ID: ${destinationStopID}`);
+  
+  let originRoutes = [];
+  let destinationRoutes = [];
+  let validTrips = [];
+
+  const originRouteurl = `https://api.opendata.metlink.org.nz/v1/gtfs/routes?stop_id=${originStopID}`;
+  const destinationRouteurl = `https://api.opendata.metlink.org.nz/v1/gtfs/routes?stop_id=${destinationStopID}`;
+  const originStopPredictionsUrl = `https://api.opendata.metlink.org.nz/v1/stop-predictions?stop_id=${originStopID}`;
+
+  const apiKey = 'dItDXPZfr0aeK9f8McupL3E4JiwkC8M3d1fj1ZZc';
+
+  await fetch(originRouteurl, {
+    method: 'GET',
+    headers: { 'x-api-key': apiKey, 'Accept': 'application/json' }
+  })
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      return response.json();
+    })
+    .then(data => { originRoutes = data.map(route => route.route_short_name); })
+    .catch(error => console.error('Error fetching Metlink data:', error));
+
+  await fetch(destinationRouteurl, {
+    method: 'GET',
+    headers: { 'x-api-key': apiKey, 'Accept': 'application/json' }
+  })
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      return response.json();
+    })
+    .then(data => { destinationRoutes = data.map(route => route.route_short_name); })
+    .catch(error => console.error('Error fetching Metlink data:', error));
+
+  let commonRoutes = originRoutes.filter(route => destinationRoutes.includes(route));
+
+  await fetch(originStopPredictionsUrl, {
+    method: 'GET',
+    headers: { 'x-api-key': apiKey, 'Accept': 'application/json' }
+  })
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      return response.json();
+    })
+    .then(async data => {
+      const departures = data.departures || [];
+      
+      // Filter departures down to only routes heading the right way
+      let relevantDepartures = departures.filter(departure => 
+        commonRoutes.includes(departure.service_id) && 
+        (departure.direction === 'outbound' || departure.direction === 'inbound')
+      );
+
+      // Loop through all upcoming predictions instead of just the first one
+      for (const departure of relevantDepartures) {
+        let stopsUrl = `https://api.opendata.metlink.org.nz/v1/gtfs/stops?trip_id=${departure.trip_id}`;
+
+        await fetch(stopsUrl, {
+          method: 'GET',
+          headers: { 'x-api-key': apiKey, 'Accept': 'application/json' }
+        })
+          .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
+          })
+          .then(stopsData => {
+            let originPos = stopsData.findIndex(item => item.stop_id.replace(/\d+$/, '') === originStopID.replace(/\d+$/, ''));
+            let destPos = stopsData.findIndex(item => item.stop_id.replace(/\d+$/, '') === destinationStopID.replace(/\d+$/, ''));
+
+            // Check if train travels from origin to destination and stops at both
+            if (originPos > -1 && destPos > -1 && (destPos - originPos > 0)) {
+              let stopCount = destPos - originPos;
+              let departureTime = departure.departure.aimed || departure.departure.expected;
+              
+              validTrips.push({
+                tripData: departure,
+                time: departureTime,
+                stops: stopCount
+              });
+            }
+          })
+          .catch(error => console.error('Error fetching stops data:', error));
+      }
+    })
+    .catch(error => console.error('Error fetching Metlink data:', error));
+
+  // Sort trips chronologically so the soonest trips are first
+  validTrips.sort((a, b) => (a.time < b.time ? -1 : 1));
+
+  // Clear previous displays
+  let res1 = document.getElementById("journeyResult");
+  let info1 = document.getElementById("journeyInfo");
+  let res2 = document.getElementById("journeyResult2");
+  let info2 = document.getElementById("journeyInfo2");
+
+  res1.style.display = "none";
+  info1.style.display = "none";
+  if (res2) res2.style.display = "none";
+  if (info2) info2.style.display = "none";
+
+  if (validTrips.length === 0) {
+    res1.innerHTML = `<p>No stopping services found for this selection.</p>`;
+    res1.style.display = "block";
+    return;
+  }
+
+  // Render First Journey Choice
+  let trip1 = validTrips[0].tripData;
+  res1.classList.add('transit-card');
+  res1.style.display = "block";
+  info1.style.display = "block";
+  res1.innerHTML = `
+    <h4 class="top-right">${trip1.trip_headsign} | ${trip1.destination.name.substring(trip1.destination.name.indexOf('-') + 1)}</h4>
+    <p class="top-left lineIcon" data-alert="${trip1.service_id}" >${trip1.service_id}</p>
+    <p class="bottom-left">${trip1.departure.expected === null ? convertTo12Hour(trip1.departure.aimed) : convertTo12Hour(trip1.departure.expected)}</p>
+    ${trip1.wheelchair_accessible ? '<img src="https://www.metlink.org.nz/assets/Icons/Mobility-park.svg" alt="Mobility Park" width="30px" height="30px" id="wheelchair"/>' : ''}
+    <p class="bottom-right">${trip1.stop_id.replace(/\D/g, '') === '' ? '' : 'Platform ' + trip1.stop_id.replace(/\D/g, '')}</p>
+  `;
+  info1.innerHTML = `Ride ${validTrips[0].stops} ${validTrips[0].stops !== 1 ? 'stops' : 'stop'} to ${destinationStopName}`;
+
+  // Render Second Journey Choice (if it exists)
+  if (validTrips.length > 1 && res2 && info2) {
+    let trip2 = validTrips[1].tripData;
+    res2.classList.add('transit-card');
+    res2.style.display = "block";
+    info2.style.display = "block";
+    res2.innerHTML = `
+      <h4 class="top-right">${trip2.trip_headsign} | ${trip2.destination.name.substring(trip2.destination.name.indexOf('-') + 1)}</h4>
+      <p class="top-left lineIcon" data-alert="${trip2.service_id}" >${trip2.service_id}</p>
+      <p class="bottom-left">${trip2.departure.expected === null ? convertTo12Hour(trip2.departure.aimed) : convertTo12Hour(trip2.departure.expected)}</p>
+      ${trip2.wheelchair_accessible ? '<img src="https://www.metlink.org.nz/assets/Icons/Mobility-park.svg" alt="Mobility Park" width="30px" height="30px" id="wheelchair"/>' : ''}
+      <p class="bottom-right">${trip2.stop_id.replace(/\D/g, '') === '' ? '' : 'Platform ' + trip2.stop_id.replace(/\D/g, '')}</p>
+    `;
+    info2.innerHTML = `Ride ${validTrips[1].stops} ${validTrips[1].stops !== 1 ? 'stops' : 'stop'} to ${destinationStopName}`;
+  }
+}
+
+
+
+
+
+/**************************
+ * 
+ * Types of displays:
+ * In Vehicle Display 
+ * Platform Display 
+ * Station Display
+ * Single Trip Display 
+ * Line Display
+ * Live travel like what you actually want to know
+ * *****************************/

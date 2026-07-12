@@ -22,8 +22,8 @@
 
 <body>
   <div id="mainLayout">
+    <h1>Metlink (But Better)</h1>
     <div id="mainContent">
-      <h1>Playing Around</h1>
       <button onclick="fb_authenticate()" type="button" id="loginButton">Log in with Google</button>
       <!--
       <form>
@@ -36,16 +36,25 @@
       </form>
     -->
       <div id="metlinkContainer">
+        <h2>Departures at:</h2>
         <select id="stationSelect"></select>
-        <h2 id="departureHeader"></h2>
         <div id="singleDepartureContainer">
           <div id="singleDeparture" class="singleDeparture"></div>
           <div id="singleDeparture2" class="singleDeparture"></div>
           <div id="singleDeparture3" class="singleDeparture"></div>
         </div>
-        <div id="info"></div>
       </div>
-
+      <div id="journeyPlannerContainer">
+        <h2>Journey Planner</h2>
+        <p>Origin: <select id="originSelect"></select></p>
+        <p>Destination: <select id="destinationSelect"></select></p>
+        <button onclick="journeyPlanner()" type="button" id="journeyPlannerButton">Plan Journey</button>
+        <div id="journeyResult" class="singleDeparture"></div>
+        <div id="journeyInfo"></div>
+        <div id="journeyResult2" class="singleDeparture"></div>
+        <div id="journeyInfo2"></div>
+      </div>
+      <div id="info"></div>
     </div>
     <div id="topBar">
       <div id="profilePhoto" onclick="getProfileInfo()">

@@ -12,11 +12,14 @@ body {
     width: 100vw;
     box-sizing: border-box;
     padding: 12px;
-    overflow-x: hidden; /* Prevents any accidental horizontal scrolling on mobile */
+    overflow-x: hidden;
+    /* Prevents any accidental horizontal scrolling on mobile */
 }
 
 /* Ensure all elements calculate sizing properly */
-*, *:before, *:after {
+*,
+*:before,
+*:after {
     box-sizing: inherit;
 }
 
@@ -31,7 +34,7 @@ body {
 #profileInfo {
     background-color: white;
     border: 2px solid #003a37;
-    border-radius: 4px;
+    border-radius: 5px;
     position: absolute;
     top: 110%;
     right: 0%;
@@ -56,28 +59,47 @@ h1 {
 
 #mainLayout {
     display: flex;
-    flex-direction: column; /* Stack vertically on mobile first */
+    flex-direction: column;
+    /* Stack vertically on mobile first */
     justify-content: flex-start;
     align-items: stretch;
     background-color: #ffffff;
     /* Forces layout to fill the exact remaining screen viewport size minus padding */
-    width: calc(100vw - 24px); 
-    height: calc(100vh - 24px);
+    width: calc(100vw - 25px);
+    height: calc(100vh - 25px);
     padding: 10px;
     box-sizing: border-box;
-    border-radius: 4px;
-    overflow-y: auto; /* Allows content inside to scroll if it exceeds the screen height */
+    border-radius: 5px;
+    overflow-y: auto;
+    /* Allows content inside to scroll if it exceeds the screen height */
+    position: relative;
+}
+
+#mainLayout>h1 {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+    margin: 0;
+    font-size: 30px;
 }
 
 #mainContent {
     display: flex;
     flex-direction: column;
-    flex-grow: 1;
+    gap: 16px;
+    margin-top: 60px;
+    width: 100%;
+}
+
+#mainContent>* {
+    width: 100%;
 }
 
 #topBar {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     margin: 0px;
     gap: 15px;
     flex-wrap: wrap;
@@ -92,10 +114,11 @@ h1 {
     text-decoration: none;
     display: inline-block;
     font-size: 16px;
-    margin: 4px 2px;
+    margin: 5px 0;
     cursor: pointer;
-    width: fit-content;
-    border-radius: 4px;
+    width: 100%;
+    max-width: 280px;
+    border-radius: 5px;
 }
 
 #loginButton:hover {
@@ -110,11 +133,12 @@ h1 {
 
 
 form {
-    border-radius: 4px;
+    border-radius: 5px;
     background-color: #9ec5c6;
     padding: 20px;
     width: 100%;
-    max-width: 400px; /* Scales down on mobile, matches original on desktop */
+    max-width: 400px;
+    /* Scales down on mobile, matches original on desktop */
     margin-top: 10px;
 }
 
@@ -126,7 +150,7 @@ input[type=text] {
     border: 3px solid #bfdbdd;
     transition: 0.5s;
     outline: none;
-    border-radius: 4px;
+    border-radius: 5px;
 }
 
 input[type=text]:focus {
@@ -145,34 +169,62 @@ input[type=text]:focus {
     border: none;
     transition: 0.5s;
     outline: none;
-    border-radius: 4px;
+    border-radius: 5px;
 }
 
 #submitButton:hover {
     background-color: #003a37;
 }
 
+#journeyPlannerButton {
+    background-color: white;
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+    width: 160px;
+    margin: 8px 0;
+    box-sizing: border-box;
+    border: none;
+    transition: 0.5s;
+    outline: none;
+    border-radius: 5px;
 
-#metlinkContainer {
-    border-radius: 4px;
+    border: 2px solid #001f3f;
+    padding: 5px;
+    font-size: 18px;
+}
+
+#journeyPlannerButton:hover {
+    background-color: #ffffffda;
+}
+
+
+
+
+#metlinkContainer,
+#journeyPlannerContainer {
+    border-radius: 5px;
     background-color: #002A3A;
     padding: 20px;
     width: 100%;
-    max-width: 600px; /* Scales down on mobile, matches original on desktop */
+    max-width: 100%;
     margin-top: 10px;
     font-family: 'Gentleman-Regular', sans-serif;
     color: #ffffff;
 }
 
+
+
 .singleDeparture {
-    border-radius: 4px;
+    border-radius: 5px;
     background-color: #ffffff;
-    color:#000000;
+    color: #000000;
     font-family: 'Gentleman-Regular', sans-serif;
-    padding: 5px;
+    padding: 10px;
     width: 100%;
-    max-width: 400px; /* Scales down on mobile, matches original on desktop */
+    max-width: 100%;
     margin: 10px 0;
+    box-sizing: border-box;
 }
 
 /* 1. Establish the boundary container */
@@ -222,7 +274,7 @@ input[type=text]:focus {
     height: 45px;
     border-radius: 50%;
     color: #000000;
-    border:#000000 2px solid;
+    border: #000000 2px solid;
     /* Black text */
 
     /* Centering the text perfectly */
@@ -236,18 +288,21 @@ input[type=text]:focus {
 .lineIcon[data-alert="HVL"] {
     background-color: #f5b960;
 }
+
 .lineIcon[data-alert="JVL"] {
     background-color: #4EC3E0;
 }
+
 .lineIcon[data-alert="MEL"] {
     background-color: #f5b960;
 }
+
 .lineIcon[data-alert="KPL"] {
     background-color: #E3E935;
 }
+
 .lineIcon[data-alert="WRL"] {
     background-color: #FFCD00;
-    /* Orange color for HVL */
 }
 
 
@@ -263,7 +318,7 @@ select,
 ::picker(select) {
     background-color: white;
     border: 2px solid #001f3f;
-    border-radius: 8px;
+    border-radius: 5px;
     padding: 5px;
 }
 
@@ -278,7 +333,9 @@ select option:hover {
     color: white;
 }
 
-#stationSelect {
+#stationSelect,
+#originSelect,
+#destinationSelect {
     background-color: white;
     color: black;
 }
@@ -286,8 +343,56 @@ select option:hover {
 /* --- Media Query for Desktop Views --- */
 @media (min-width: 768px) {
     #mainLayout {
-        flex-direction: row; /* Returns layout to horizontal side-by-side split on desktop */
+        flex-direction: row;
         justify-content: space-between;
         align-items: flex-start;
     }
+
+    #mainContent {
+        flex-direction: row;
+        align-items: flex-start;
+        margin-top: 60px;
+        flex-wrap: wrap;
+    }
+
+    #metlinkContainer,
+    #journeyPlannerContainer {
+        max-width: 460px;
+        flex: 1 1 320px;
+    }
+
+    #loginButton {
+        width: fit-content;
+        max-width: none;
+    }
+}
+
+#journeyResult, #journeyResult2 {
+    display: none;
+    /* Controlled by your JS toggle */
+    padding-bottom: 0px;
+    margin-bottom: 0px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+}
+
+#journeyInfo, #journeyInfo2 {
+    display: none;
+    /* Keeps it hidden until journeyResult is shown */
+    background-color: #CEDC00;
+    /* Your custom color */
+    color: black;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    margin-top: 0px;
+    padding: 5px;
+}
+
+#wheelchair {
+    position: absolute;
+    padding: 0px;
+    margin: 0px;
+    bottom: 5px;
+    left: 100px;
+    
 }
